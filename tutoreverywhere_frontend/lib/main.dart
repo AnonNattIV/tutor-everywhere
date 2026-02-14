@@ -7,6 +7,7 @@ import 'package:tutoreverywhere_frontend/models/auth.dart';
 import 'package:tutoreverywhere_frontend/pages/admin/home.dart';
 import 'package:tutoreverywhere_frontend/pages/student/home.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/home.dart';
+import 'package:tutoreverywhere_frontend/pages/registration/home.dart';
 import './service/api.dart';
 
 void main() {
@@ -131,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
               TextSpan(
                 children: [
                   TextSpan(text: "No account? Register ", style: Theme.of(context).textTheme.bodyLarge),
-                  TextSpan(text: "here", recognizer: TapGestureRecognizer()..onTap = () => print("Navigate to register page"),style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.blueAccent)),
+                  TextSpan(text: "here", recognizer: TapGestureRecognizer()..onTap = () => Navigator.push(context, MaterialPageRoute<void>(builder: (context) => RegisterHomePage())),style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.blueAccent)),
                 ]
               )
             ),
