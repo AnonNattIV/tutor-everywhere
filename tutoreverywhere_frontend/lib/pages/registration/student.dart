@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:tutoreverywhere_frontend/main.dart';
+import 'package:tutoreverywhere_frontend/models/register/student.dart';
+import '../../service/api.dart';
+import 'package:dio/dio.dart';
 
 class StudentRegister extends StatefulWidget {
   StudentRegister({super.key});
@@ -8,11 +13,15 @@ class StudentRegister extends StatefulWidget {
 }
 
 class _StudentRegisterState extends State<StudentRegister> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   DateTime? selectedDate;
+  String? selectedGender;
+
+  late final RestClient _restClient;
 
   Future<void> _selectDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -21,9 +30,65 @@ class _StudentRegisterState extends State<StudentRegister> {
       lastDate: DateTime(2027),
     );
 
-    setState(() {
-      selectedDate = pickedDate;
-    });
+    if (pickedDate != null) setState(() =>  selectedDate = pickedDate);
+  }
+
+  Future<void> _register() async {
+    try {
+      if (!_formKey.currentState!.validate() || selectedDate == null || selectedGender == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please fill all fields")),
+        );
+        return;
+      }
+
+      print("Test");
+      final student = RegisterStudent(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
+        firstname: _firstNameController.text.trim(),
+        lastname: _lastNameController.text.trim(),
+        dateofbirth: selectedDate!,
+        gender: selectedGender!,
+      );
+
+      await _restClient.registerStudent(student);
+
+      if (!mounted) return;
+
+      // Successful
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Success!"), backgroundColor: Colors.green),
+      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MyApp()));
+
+    } on DioException catch (e) {
+      if (!mounted) return;
+        String errorMsg = "Registration failed";
+        if (e.response?.statusCode == 400) {
+          errorMsg = e.response?.data['message'] ?? "Invalid data";
+        } else if (e.response?.statusCode == 409) {
+          errorMsg = "Username already exists";
+        } else if (e.response?.statusCode == 500) {
+          errorMsg = "Register Account Server error";
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final dio = Dio(BaseOptions(contentType: Headers.jsonContentType));
+    _restClient = RestClient(dio);
   }
 
   @override
@@ -42,35 +107,44 @@ class _StudentRegisterState extends State<StudentRegister> {
         title: Text("Student Registration"), centerTitle: true,
       ),
       body:
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 16,
+        Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            
             children: [
-
+          
               Text("Create a new student account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
 
+              SizedBox(height: 16),
+          
               TextField(
                 obscureText: false,
                 controller: _usernameController,
                 decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Username'),
               ),
 
+              SizedBox(height: 16),
+          
               TextField(
                 obscureText: true,
                 controller: _passwordController,
                 decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Password'),
               ),
 
+              SizedBox(height: 16),
+          
               Text("Account Information", style: TextStyle(fontSize: 20)),
+          
+              SizedBox(height: 16),
 
               TextField(
                 obscureText: false,
                 controller: _firstNameController,
                 decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'First Name'),
               ),
-
+          
+              SizedBox(height: 16),
 
               TextField(
                 obscureText: false,
@@ -78,6 +152,8 @@ class _StudentRegisterState extends State<StudentRegister> {
                 decoration: InputDecoration(border: OutlineInputBorder(), labelText: 'Last Name'),
               ),
 
+              SizedBox(height: 16),
+          
               Row(
                 spacing: 16,
                 children: [
@@ -86,20 +162,26 @@ class _StudentRegisterState extends State<StudentRegister> {
                 ],
               ),
 
+              SizedBox(height: 16),
+          
               Row(
                 spacing: 16,
                 children: [
                   Text("Gender", style: TextStyle(fontSize: 16)),
-                  DropdownMenu(dropdownMenuEntries: [
-                    DropdownMenuEntry(value: "male", label: "Male"),
-                    DropdownMenuEntry(value: "female", label: "Female")
+                  DropdownMenu(
+                    onSelected: (value) => setState(() => selectedGender = value),
+                    dropdownMenuEntries: [
+                      DropdownMenuEntry(value: "male", label: "Male"),
+                      DropdownMenuEntry(value: "female", label: "Female")
                   ]),
                 ],
               ),
-
+              
+              SizedBox(height: 16),
+          
               Align(
                 alignment: AlignmentGeometry.bottomCenter,
-                child: ElevatedButton(onPressed: () => print("XD"), style: ElevatedButton.styleFrom(padding: EdgeInsets.only(bottom: 12, top: 12, left: 32, right: 32)), child: Text("Register", style: TextStyle(fontSize: 24,  fontWeight: FontWeight.bold)))
+                child: ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(padding: EdgeInsets.only(bottom: 12, top: 12, left: 32, right: 32)), child: Text("Register", style: TextStyle(fontSize: 24,  fontWeight: FontWeight.bold)))
               )
             ],
           ),
