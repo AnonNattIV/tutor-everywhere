@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tutoreverywhere_frontend/pages/registration/tutor.dart';
 import 'student.dart';
 
 class RegisterHomePage extends StatelessWidget {
@@ -32,6 +33,7 @@ class RegisterHomePage extends StatelessWidget {
             Card(
               child:
                 ListTile(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TutorRegister())),
                   leading: Icon(Icons.person),
                   title: Text("Tutor"),
                   subtitle: Text("Teach students to earn money"),

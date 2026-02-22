@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:tutoreverywhere_frontend/main.dart';
-import 'package:tutoreverywhere_frontend/models/register/student.dart';
+import 'package:tutoreverywhere_frontend/models/register/tutor.dart';
 import '../../service/api.dart';
 import 'package:dio/dio.dart';
 
-class StudentRegister extends StatefulWidget {
-  StudentRegister({super.key});
+class TutorRegister extends StatefulWidget {
+  TutorRegister({super.key});
 
   @override
-  State<StudentRegister> createState() => _StudentRegisterState();
+  State<TutorRegister> createState() => _TutorRegisterState();
 }
 
-class _StudentRegisterState extends State<StudentRegister> {
+class _TutorRegisterState extends State<TutorRegister> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -42,7 +42,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         return;
       }
 
-      final student = RegisterStudent(
+      final tutor = RegisterTutor(
         username: _usernameController.text.trim(),
         password: _passwordController.text,
         firstname: _firstNameController.text.trim(),
@@ -51,7 +51,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         gender: selectedGender!,
       );
 
-      await _restClient.registerStudent(student);
+      await _restClient.registerTutor(tutor);
 
       if (!mounted) return;
 
@@ -64,7 +64,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         MaterialPageRoute(builder: (context) => const HomePage()),
         (route) => false,
       );
-
+      
     } on DioException catch (e) {
       if (!mounted) return;
         String errorMsg = "Registration failed";
@@ -107,7 +107,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Student Registration"), centerTitle: true,
+        title: Text("Tutor Registration"), centerTitle: true,
       ),
       body:
         Form(
@@ -117,7 +117,7 @@ class _StudentRegisterState extends State<StudentRegister> {
             
             children: [
           
-              Text("Create a new student account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text("Create a new tutor account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
 
               SizedBox(height: 16),
           

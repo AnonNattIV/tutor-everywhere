@@ -3,6 +3,7 @@ import 'package:retrofit/retrofit.dart';
 import '../models/jwt.dart';
 import '../models/auth.dart';
 import '../models/register/student.dart';
+import '../models/register/tutor.dart';
 
 part 'api.g.dart';
 
@@ -18,4 +19,7 @@ abstract class RestClient {
 
   @POST("/register/student")
   Future<HttpResponse<void>> registerStudent(@Body() RegisterStudent student);
+
+  @POST("/register/tutor")
+  Future<HttpResponse<void>> registerTutor(@Body() RegisterTutor tutor);
 }

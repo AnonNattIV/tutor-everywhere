@@ -16,6 +16,7 @@ void main() {
 
 final dio = Dio();
 final client = RestClient(dio, baseUrl: "http://10.0.2.2:3000");
+const Color mainColor = Color(0xFF1DA1F2);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -26,14 +27,49 @@ class MyApp extends StatelessWidget {
       title: "TutorEverywhere",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: mainColor,
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: Colors.white,
+
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.lightBlue[400],
+          style: ElevatedButton.styleFrom(
+            backgroundColor: mainColor,
             foregroundColor: Colors.white,
-            minimumSize: Size(88, 36),
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(2)))
+            minimumSize: const Size(88, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(999)), 
+            ),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
           ),
-        )
+        ),
+
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        ),
       ),
       home: HomePage()
     );
@@ -67,15 +103,31 @@ class _LoginPageState extends State<LoginPage> {
       HttpResponse testResponse = await client.testLogin(Auth(username: username, password: password));
       var token = testResponse.data.token;
       var jwtData = JWT.decode(token);
+      print(token);
+      print(jwtData.payload['userId']);
+      print(jwtData.payload['iat']);
+      print(jwtData.payload['exp']);
       switch (jwtData.payload['role']) {
-        case "student":
-          Navigator.push(context, MaterialPageRoute<void>(builder: (context) => StudentHomePage()));
+        case "student": 
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const StudentHomePage()),
+            (route) => false,
+          );
           break;
         case "tutor":
-          Navigator.push(context, MaterialPageRoute<void>(builder: (context) => TutorHomePage()));
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const TutorHomePage()),
+            (route) => false,
+          );
           break;
         case "admin":
-          Navigator.push(context, MaterialPageRoute<void>(builder: (context) => AdminHomePage()));
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminHomePage()),
+            (route) => false,
+          );
           break;
       }
       return true;
