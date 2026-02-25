@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import '../models/jwt.dart';
 import '../models/auth.dart';
@@ -10,7 +11,7 @@ part 'api.g.dart';
 
 @RestApi(baseUrl: "http://10.0.2.2:3000/")
 abstract class RestClient {
-  factory RestClient(Dio dio, {String baseUrl}) = _RestClient;
+  factory RestClient(Dio dio, {String? baseUrl}) = _RestClient;
 
   @POST("/auth")
   Future<Jwt> login(@Body() Auth auth);
@@ -26,4 +27,7 @@ abstract class RestClient {
 
   @GET("/tutors/{userId}")
   Future<HttpResponse<TutorData>> getTutorDataById(@Path("userId") String userId);
+
+  @GET("/students/{userId}")
+  Future<StudentData> getStudentsDataById(@Path("userId") String userId);
 }

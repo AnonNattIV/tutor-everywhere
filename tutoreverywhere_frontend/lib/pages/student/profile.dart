@@ -2,10 +2,19 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
+import 'package:tutoreverywhere_frontend/models/students/data.dart';
+import 'package:tutoreverywhere_frontend/service/api.dart';
 
 class StudentProfilePage extends StatefulWidget {
-  const StudentProfilePage({super.key, this.embedded = false});
+  const StudentProfilePage({
+    super.key, 
+    required this.userId,
+    this.embedded = false,
+  });
 
+  final String userId; // User UUID to fetch data for
   final bool embedded;
 
   @override
@@ -14,8 +23,85 @@ class StudentProfilePage extends StatefulWidget {
 
 class _StudentProfilePageState extends State<StudentProfilePage> {
   final ImagePicker _picker = ImagePicker();
-  File? _image;
-  String _bio = 'Lorem Ipsum';
+  File? _image; // Locally picked image (overrides fetched URL temporarily)
+  String _bio = '';
+  
+  // Student data state
+  StudentData? _student;
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  // Dio client setup
+  late final Dio _dio;
+  late final RestClient _client;
+  static const String _baseUrl = "http://10.0.2.2:3000/";
+
+  @override
+  void initState() {
+    super.initState();
+    _setupDio();
+    _fetchStudentData();
+  }
+
+  void _setupDio() {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      contentType: "application/json",
+      validateStatus: (status) => status != null,
+    ));
+
+    _dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      error: true,
+    ));
+
+    _client = RestClient(_dio, baseUrl: _baseUrl);
+  }
+
+  Future<void> _fetchStudentData() async {
+    try {
+      final student = await _client.getStudentsDataById(widget.userId);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _student = student;
+        _bio = student.bio ?? 'Lorem Ipsum';
+        _isLoading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message ?? 'Failed to load profile';
+        _isLoading = false;
+      });
+      debugPrint('Dio Error: ${e.type} - ${e.message}');
+      debugPrint('Response: ${e.response?.data}');
+    } catch (e, stackTrace) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Unexpected error: $e';
+        _isLoading = false;
+      });
+      debugPrint('Unexpected Error: $e');
+      debugPrint('Stack: $stackTrace');
+    }
+  }
+
+  /// Builds the profile picture URL with special handling for default_pfp.png
+  String? _getProfilePictureUrl() {
+    final picture = _student?.profilePicture;
+    if (picture == null || picture.isEmpty) return null;
+    
+    // Special case: default profile picture needs assets path prefix
+    if (picture.contains('default_pfp.png')) {
+      return '${_baseUrl}assets/pfp/default_pfp.png';
+    }
+    
+    // Return absolute URL if already full, otherwise prepend base URL
+    return picture.startsWith('http') ? picture : '$_baseUrl$picture';
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -29,6 +115,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     setState(() {
       _image = File(pickedFile.path);
     });
+    
+    // TODO: Upload image to server and update student profile via API
   }
 
   void _showImageSourceActionSheet() {
@@ -62,50 +150,132 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Future<void> _editBio() async {
-    final controller = TextEditingController(text: _bio);
+  String _formatDateOfBirth(Object? dateValue) {
+    // 1. Handle null or empty
+    if (dateValue == null) return 'Not specified';
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Edit Bio'),
-          content: TextField(
-            controller: controller,
-            maxLines: 4,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Enter your bio',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+    DateTime? date;
+
+    // 2. If it's already a DateTime object
+    if (dateValue is DateTime) {
+      date = dateValue;
+    } 
+    // 3. If it's a String (most common from API)
+    else if (dateValue is String) {
+      if (dateValue.isEmpty) return 'Not specified';
+      try {
+        date = DateTime.parse(dateValue);
+      } catch (e) {
+        debugPrint('Failed to parse date string: $dateValue');
+        return 'Invalid date';
+      }
+    } 
+    // 4. Fallback for other types
+    else {
+      debugPrint('Unknown date type: ${dateValue.runtimeType}');
+      return 'Invalid date format';
+    }
+
+    // 5. Format the valid DateTime
+    return DateFormat('d MMMM yyyy').format(date);
+  }
+
+  // Returns gender icon widget or null if gender is not specified
+  Widget? _buildGenderIcon(String? gender) {
+    if (gender == null || gender.isEmpty) return null;
+    
+    final isMale = gender.toLowerCase() == 'male';
+    return Icon(
+      isMale ? Icons.male : Icons.female,
+      size: 24,
+      color: isMale ? Colors.blue : Colors.pink,
     );
+  }
 
-    controller.dispose();
-    if (!mounted || result == null) return;
-
-    final updatedBio = result.trim();
-    if (updatedBio.isEmpty) return;
-
-    setState(() {
-      _bio = updatedBio;
-    });
+  // Returns verified badge widget or null if not verified
+  Widget? _buildVerifiedBadge(bool? verified) {
+    if (verified != true) return null;
+    
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.all(4),
+      decoration: const BoxDecoration(
+        color: Colors.blue,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.check,
+        size: 14,
+        color: Colors.white,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Loading state
+    if (_isLoading) {
+      return widget.embedded 
+          ? const Center(child: CircularProgressIndicator())
+          : Scaffold(
+              backgroundColor: Colors.grey.shade50,
+              appBar: AppBar(
+                title: const Text('My Profile'),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+              ),
+              body: const Center(child: CircularProgressIndicator()),
+            );
+    }
+
+    // Error state
+    if (_errorMessage != null) {
+      return widget.embedded
+          ? Center(child: Text('Error: $_errorMessage'))
+          : Scaffold(
+              backgroundColor: Colors.grey.shade50,
+              appBar: AppBar(
+                title: const Text('My Profile'),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+              ),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text('Error: $_errorMessage'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _fetchStudentData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+    }
+
+    // Extract display values with fallbacks
+    final firstName = _student?.firstname ?? 'John';
+    final lastName = _student?.lastname ?? 'Doe';
+    final fullName = '$firstName $lastName';
+    final dateOfBirth = _student?.dateofbirth ?? '1 January 1970';
+    final profileImageUrl = _getProfilePictureUrl();
+    final gender = _student?.gender;
+    final verified = _student?.verified;
+    
+    // Determine image provider: local pick > fetched URL > default icon
+    ImageProvider? profileImage;
+    if (_image != null) {
+      profileImage = FileImage(_image!);
+    } else if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+      profileImage = NetworkImage(profileImageUrl);
+    }
+
     final profileContent = SingleChildScrollView(
       child: Column(
         children: [
@@ -118,8 +288,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
-                    backgroundImage: _image != null ? FileImage(_image!) : null,
-                    child: _image == null
+                    backgroundImage: profileImage,
+                    child: profileImage == null
                         ? const Icon(
                             Icons.person,
                             size: 70,
@@ -152,9 +322,24 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'John Doe',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Gender icon before name
+              if (_buildGenderIcon(gender) != null) ...[
+                _buildGenderIcon(gender)!,
+                const SizedBox(width: 6),
+              ],
+              // Full name
+              Text(
+                fullName,
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              ),
+              // Verified badge after name
+              if (_buildVerifiedBadge(verified) != null)
+                _buildVerifiedBadge(verified)!,
+            ],
           ),
           const SizedBox(height: 24),
           Padding(
@@ -165,16 +350,17 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
                       children: [
-                        TextSpan(
+                        const TextSpan(
                           text: 'Date of birth ',
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(
-                          text: '1 January 1970',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          // text: dateOfBirth.toString(),
+                          text: _formatDateOfBirth(dateOfBirth),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -190,18 +376,24 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                           color: Colors.black87,
                         ),
                       ),
+
                       IconButton(
-                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.edit,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: _editBio,
+                        tooltip: 'Edit bio',
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _bio,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.black87,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -227,7 +419,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 ),
                 const SizedBox(height: 10),
                 _buildMenuItem(Icons.history, 'Lesson History'),
-                _buildMenuItem(Icons.settings, 'Settings'),
+                // _buildMenuItem(Icons.settings, 'Settings'),
               ],
             ),
           ),
@@ -301,5 +493,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       ),
       onTap: () {},
     );
+  }
+
+  @override
+  void dispose() {
+    _dio.close(force: true); // Prevent memory leaks
+    super.dispose();
   }
 }

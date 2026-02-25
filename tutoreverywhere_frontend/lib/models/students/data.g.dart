@@ -6,7 +6,7 @@ part of 'data.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-TutorData _$TutorDataFromJson(Map<String, dynamic> json) => TutorData(
+StudentData _$StudentDataFromJson(Map<String, dynamic> json) => StudentData(
   userUuid: json['user_uuid'] as String,
   firstname: json['firstname'] as String,
   lastname: json['lastname'] as String,
@@ -17,13 +17,14 @@ TutorData _$TutorDataFromJson(Map<String, dynamic> json) => TutorData(
   verified: json['verified'] as bool,
 );
 
-Map<String, dynamic> _$TutorDataToJson(TutorData instance) => <String, dynamic>{
-  'user_uuid': instance.userUuid,
-  'firstname': instance.firstname,
-  'lastname': instance.lastname,
-  'dateofbirth': instance.dateofbirth.toIso8601String(),
-  'gender': instance.gender,
-  'profile_picture': instance.profilePicture,
-  'bio': instance.bio,
-  'verified': instance.verified,
-};
+Map<String, dynamic> _$StudentDataToJson(StudentData instance) =>
+    <String, dynamic>{
+      'user_uuid': instance.userUuid,
+      'firstname': instance.firstname,
+      'lastname': instance.lastname,
+      'dateofbirth': instance.dateofbirth.toIso8601String(),
+      'gender': instance.gender,
+      'profile_picture': instance.profilePicture,
+      'bio': instance.bio,
+      'verified': instance.verified,
+    };

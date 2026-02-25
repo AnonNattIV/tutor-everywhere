@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 part 'data.g.dart';
 
 @JsonSerializable(fieldRename: FieldRename.snake)
-class TutorData {
+class StudentData {
   final String userUuid;
   final String firstname;
   final String lastname;
@@ -13,7 +13,7 @@ class TutorData {
   final String? bio;
   final bool verified;
 
-  TutorData({
+  StudentData({
     required this.userUuid,
     required this.firstname,
     required this.lastname,
@@ -24,6 +24,6 @@ class TutorData {
     required this.verified
   });
 
-  factory TutorData.fromJson(Map<String, dynamic> json) => _$TutorDataFromJson(json);
-  Map<String, dynamic> toJson() => _$TutorDataToJson(this);
+  factory StudentData.fromJson(Map<String, dynamic> json) => _$StudentDataFromJson(json);
+  Map<String, dynamic> toJson() => _$StudentDataToJson(this);
 }

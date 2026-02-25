@@ -114,7 +114,8 @@ class _LoginPageState extends State<LoginPage> {
       var token = testResponse.data.token;  
       var jwtData = JWT.decode(token);
       if (token != null) {
-        context.read<AuthProvider>().login(token, jwtData.payload['userId'], jwtData.payload['role']);
+        await context.read<AuthProvider>().login(token, jwtData.payload['userId'], jwtData.payload['role']);
+        print(context.read<AuthProvider>().userId);
       }
       print(token);
       print(jwtData.payload['userId']);

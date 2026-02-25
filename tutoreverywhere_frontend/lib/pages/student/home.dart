@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:tutoreverywhere_frontend/main.dart';
 import 'package:tutoreverywhere_frontend/pages/all/chat.dart';
 import 'package:tutoreverywhere_frontend/pages/student/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/pages/student/profile.dart';
 import 'package:tutoreverywhere_frontend/pages/student/teacher_profile.dart';
+import 'package:provider/provider.dart';
+import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 
 class StudentHomePage extends StatefulWidget {
   const StudentHomePage({super.key});
@@ -42,12 +45,54 @@ class _StudentHomePageState extends State<StudentHomePage> {
     });
   }
 
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Logout"),
+          content: Text("Are you sure you want to logout?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Cancel
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                context.read<AuthProvider>().logout();
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
+                print("User Logged Out");
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text("Logout"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onMenuOptionSelected(String value) {
+    switch (value) {
+      case 'settings':
+        // Navigate to Settings Page
+        // Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage()));
+        print("Navigate to Settings");
+        break;
+      case 'logout':
+        // Show confirmation dialog before logging out
+        _showLogoutDialog();
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+
     final pages = <Widget>[
       _buildHomeTab(),
       const ChatPage(),
-      const StudentProfilePage(embedded: true),
+      StudentProfilePage(embedded: true, userId: context.read<AuthProvider>().userId!),
     ];
 
     return Scaffold(
@@ -89,6 +134,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final ThemeData theme = Theme.of(context);
+
     switch (currentPageIndex) {
       case 1:
         return AppBar(
@@ -99,6 +146,36 @@ class _StudentHomePageState extends State<StudentHomePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
+          actions: [
+            PopupMenuButton(
+              onSelected: _onMenuOptionSelected,
+              icon: Icon(Icons.more_vert),
+              color: Colors.white,
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: "settings",
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: theme.primaryColor, size: 20),
+                      SizedBox(width: 12),
+                      Text("Settings"),
+                    ],
+                  )
+                ),
+
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red, size: 20),
+                      SizedBox(width: 12),
+                      Text("Logout", style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          ],
           backgroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
@@ -112,6 +189,36 @@ class _StudentHomePageState extends State<StudentHomePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
+          actions: [
+            PopupMenuButton(
+              onSelected: _onMenuOptionSelected,
+              icon: Icon(Icons.more_vert),
+              color: Colors.white,
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: "settings",
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: theme.primaryColor, size: 20),
+                      SizedBox(width: 12),
+                      Text("Settings"),
+                    ],
+                  )
+                ),
+
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red, size: 20),
+                      SizedBox(width: 12),
+                      Text("Logout", style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          ],
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
@@ -129,6 +236,36 @@ class _StudentHomePageState extends State<StudentHomePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
+          actions: [
+            PopupMenuButton(
+              onSelected: _onMenuOptionSelected,
+              icon: Icon(Icons.more_vert),
+              color: Colors.white,
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: "settings",
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: theme.primaryColor, size: 20),
+                      SizedBox(width: 12),
+                      Text("Settings"),
+                    ],
+                  )
+                ),
+
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red, size: 20),
+                      SizedBox(width: 12),
+                      Text("Logout", style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          ],
           backgroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
