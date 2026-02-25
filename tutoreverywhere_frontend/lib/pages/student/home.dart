@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tutoreverywhere_frontend/pages/all/chat.dart';
+import 'package:tutoreverywhere_frontend/pages/student/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/pages/student/profile.dart';
 import 'package:tutoreverywhere_frontend/pages/student/teacher_profile.dart';
 
@@ -12,6 +13,19 @@ class StudentHomePage extends StatefulWidget {
 
 class _StudentHomePageState extends State<StudentHomePage> {
   int currentPageIndex = 0;
+
+  Future<void> _openFindTutors() async {
+    final selectedTab = await Navigator.push<int>(
+      context,
+      MaterialPageRoute(builder: (context) => const FindTutorsPage()),
+    );
+
+    if (!mounted || selectedTab == null) return;
+
+    setState(() {
+      currentPageIndex = selectedTab;
+    });
+  }
 
   Future<void> _openTeacherProfile(int index) async {
     final selectedTab = await Navigator.push<int>(
@@ -106,7 +120,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
         return AppBar(
           leading: IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {},
+            onPressed: _openFindTutors,
           ),
           title: const Text(
             'Home',
