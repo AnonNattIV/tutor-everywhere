@@ -7,12 +7,14 @@ class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
   String? _token;
   String? _userId;
+  String? _role;
   DateTime? _iat;
   DateTime? _exp;
 
   bool get isLoggedIn => _isLoggedIn;
   String? get token => _token;
   String? get userId => _userId;
+  String? get role => _role;
   DateTime? get iat => _iat;
   DateTime? get exp => _exp;
 
@@ -26,10 +28,11 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String token, String userId) async {
+  Future<void> login(String token, String userId, String role) async {
     await _storage.write(key: 'auth_token', value: token);
     _token = token;
     _userId = userId;
+    _role = role;
     _isLoggedIn = true;
     notifyListeners();
   }
@@ -38,6 +41,7 @@ class AuthProvider with ChangeNotifier {
     await _storage.delete(key: 'auth_token');
     _token = null;
     _userId = null;
+    _role = null;
     _isLoggedIn = false;
     notifyListeners();
   }

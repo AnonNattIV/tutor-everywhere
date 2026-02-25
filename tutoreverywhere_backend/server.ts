@@ -4,13 +4,17 @@ import morgan from "morgan";
 import authService from "./service/auth.ts";
 import userService from "./service/user.ts";
 import registerService from "./service/register.ts";
+import tutorService from "./service/tutors.ts";
 
 const app = express();
 app.use(morgan("combined"));
 
+app.use('/assets', express.static('assets'));
+
 app.use("/auth", authService);
 app.use("/user", userService);
 app.use("/register", registerService);
+app.use("/tutors", tutorService); 
 
 app.get("/", (req, res) => {
   res.send("Hello World");

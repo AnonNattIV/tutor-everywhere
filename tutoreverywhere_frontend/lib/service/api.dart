@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import '../models/jwt.dart';
 import '../models/auth.dart';
 import '../models/register/student.dart';
@@ -22,4 +23,7 @@ abstract class RestClient {
 
   @POST("/register/tutor")
   Future<HttpResponse<void>> registerTutor(@Body() RegisterTutor tutor);
+
+  @GET("/tutors/{userId}")
+  Future<HttpResponse<TutorData>> getTutorDataById(@Path("userId") String userId);
 }

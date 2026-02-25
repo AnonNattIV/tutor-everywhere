@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tutoreverywhere_frontend/main.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/profile.dart';
+import 'package:provider/provider.dart';
+import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import '../all/chat.dart';
 
 class TutorHomePage extends StatefulWidget {
@@ -48,10 +51,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  // TODO: Clear auth state (Provider/SharedPrefs)
-                  // Navigate to Login and clear stack
-                  // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => LoginPage()), (route) => false);
+                  context.read<AuthProvider>().logout();
+                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
                   print("User Logged Out");
                 },
                 style: TextButton.styleFrom(foregroundColor: Colors.red),

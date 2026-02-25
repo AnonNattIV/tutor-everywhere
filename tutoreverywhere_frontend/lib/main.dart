@@ -8,10 +8,19 @@ import 'package:tutoreverywhere_frontend/pages/admin/home.dart';
 import 'package:tutoreverywhere_frontend/pages/student/home.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/home.dart';
 import 'package:tutoreverywhere_frontend/pages/registration/home.dart';
+import 'package:provider/provider.dart';
+import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import './service/api.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final authProvider = AuthProvider();
+  await authProvider.checkAuth();
+  runApp(ChangeNotifierProvider.value(
+    value: authProvider,
+    child: const MyApp()
+  ));
 }
 
 final dio = Dio();
@@ -101,8 +110,11 @@ class _LoginPageState extends State<LoginPage> {
   Future<bool> login(String username, String password) async {
     try {
       HttpResponse testResponse = await client.testLogin(Auth(username: username, password: password));
-      var token = testResponse.data.token;
+      var token = testResponse.data.token;  
       var jwtData = JWT.decode(token);
+      if ((token != null) && (mounted)) {
+        context.read<AuthProvider>().login(token, jwtData.payload['userId'], jwtData.payload['role']);
+      }
       print(token);
       print(jwtData.payload['userId']);
       print(jwtData.payload['iat']);

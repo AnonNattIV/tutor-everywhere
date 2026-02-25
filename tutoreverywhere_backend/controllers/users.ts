@@ -75,4 +75,28 @@ async function registerStudent(username: string, password: string, firstname: st
   }
 }
 
-export { isUsernameExist, findUserByUserId, findUserByUsername, registerUser, registerStudent };
+async function registerTutor(username: string, password: string, firstname: string, lastname: string, dateofbirth: string, gender: string) {
+  const uuid = uuidv7();
+  try {
+    const [user, tutor] = await sql.begin(async (tx) => {
+      const [user] = await tx`
+        insert into users (user_uuid, username, password, role)
+        values (${uuid}, ${username}, ${password}, 'tutor')
+        returning *
+      `
+
+      const [tutor] = await tx`
+        insert into tutors (user_uuid, firstname, lastname, dateofbirth, gender)
+        values (${uuid}, ${firstname}, ${lastname}, ${dateofbirth}, ${gender})
+        returning *
+      `
+
+      return [user, tutor]
+    }) 
+  } catch (err) {
+    console.error("Register Tutor Error");
+    throw err;
+  }
+}
+
+export { isUsernameExist, findUserByUserId, findUserByUsername, registerUser, registerStudent, registerTutor };
