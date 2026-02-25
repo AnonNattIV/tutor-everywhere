@@ -110,9 +110,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<bool> login(String username, String password) async {
     try {
       HttpResponse testResponse = await client.testLogin(Auth(username: username, password: password));
+      if (!mounted) return false;
       var token = testResponse.data.token;  
       var jwtData = JWT.decode(token);
-      if ((token != null) && (mounted)) {
+      if (token != null) {
         context.read<AuthProvider>().login(token, jwtData.payload['userId'], jwtData.payload['role']);
       }
       print(token);
@@ -144,6 +145,7 @@ class _LoginPageState extends State<LoginPage> {
       }
       return true;
     } on DioException catch (e) {
+      if (!mounted) return false;
       showDialog(context: context, builder: (BuildContext context) {
         return SimpleDialog(
           title: const Text("Error"),

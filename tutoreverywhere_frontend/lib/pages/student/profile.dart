@@ -15,6 +15,7 @@ class StudentProfilePage extends StatefulWidget {
 class _StudentProfilePageState extends State<StudentProfilePage> {
   final ImagePicker _picker = ImagePicker();
   File? _image;
+  String _bio = 'Lorem Ipsum';
 
   Future<void> _pickImage(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -59,6 +60,48 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         );
       },
     );
+  }
+
+  Future<void> _editBio() async {
+    final controller = TextEditingController(text: _bio);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Edit Bio'),
+          content: TextField(
+            controller: controller,
+            maxLines: 4,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter your bio',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, controller.text),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (!mounted || result == null) return;
+
+    final updatedBio = result.trim();
+    if (updatedBio.isEmpty) return;
+
+    setState(() {
+      _bio = updatedBio;
+    });
   }
 
   @override
@@ -151,13 +194,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         icon: const Icon(Icons.edit, size: 20),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
-                        onPressed: () {},
+                        onPressed: _editBio,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Lorem Ipsum',
+                  Text(
+                    _bio,
                     style: TextStyle(
                       color: Colors.black87,
                       fontSize: 14,
