@@ -90,14 +90,15 @@ class TeacherProfilePage extends StatelessWidget {
               ),
               child: const TabBar(
                 isScrollable: true,
+                tabAlignment: TabAlignment.center,
                 labelColor: Colors.deepPurple,
                 unselectedLabelColor: Colors.black87,
                 indicatorColor: Colors.deepPurple,
                 indicatorWeight: 3,
                 tabs: [
-                  Tab(text: 'ข้อมูลส่วนตัว'),
-                  Tab(text: 'รีวิว'),
-                  Tab(text: 'รายวิชาที่เปิดสอน'),
+                  Tab(text: 'Profile'),
+                  Tab(text: 'Reviews'),
+                  Tab(text: 'Subjects'),
                 ],
               ),
             ),
