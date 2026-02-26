@@ -16,11 +16,12 @@ async function viewStudentData(userId: string) {
 }
 
 async function updateStudentBio(userId: string, bio: string) {
+  console.log(userId, bio);
   try {
     await sql`
       update students
       set bio = ${bio}
-      where userId = ${userId}
+      where user_uuid = ${userId}
     `
   } catch (err) {
     console.error("Update Student Bio Error")
@@ -28,4 +29,4 @@ async function updateStudentBio(userId: string, bio: string) {
   }
 }
 
-export { viewStudentData }
+export { viewStudentData, updateStudentBio }
