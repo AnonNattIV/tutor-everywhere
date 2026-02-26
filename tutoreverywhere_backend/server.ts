@@ -5,6 +5,7 @@ import authService from "./service/auth.ts";
 import userService from "./service/user.ts";
 import registerService from "./service/register.ts";
 import tutorService from "./service/tutors.ts";
+import studentService from "./service/students.ts";
 
 const app = express();
 app.use(morgan("combined"));
@@ -15,6 +16,7 @@ app.use("/auth", authService);
 app.use("/user", userService);
 app.use("/register", registerService);
 app.use("/tutors", tutorService); 
+app.use("/students", studentService); 
 
 app.get("/", (req, res) => {
   res.send("Hello World");

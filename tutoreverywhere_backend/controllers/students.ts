@@ -1,18 +1,18 @@
 import sql from "../db/db.ts";
 
-async function viewTutorData(userId: string) {
+async function viewStudentData(userId: string) {
   try {
-    const tutor = await sql`
+    const student = await sql`
       select user_uuid, firstname, lastname, dateofbirth, gender, profile_picture, bio, verified
-      from tutors
+      from students
       where user_uuid = ${userId}
     `;
 
-    return tutor;
+    return student;
   } catch (err) {
-    console.error("View Tutor Data Error");
+    console.error("View Student Data Error");
     throw err;
   }
 }
 
-export { viewTutorData }
+export { viewStudentData }
