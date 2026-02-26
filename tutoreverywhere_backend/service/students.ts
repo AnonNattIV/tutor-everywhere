@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { viewStudentData } from "../controllers/students.ts";
+import { viewStudentData, updateStudentBio } from "../controllers/students.ts";
 import { verifyToken } from "../middleware/verify.ts";
 
 const studentService = express.Router();
@@ -18,12 +18,13 @@ studentService.get("/profile/:userId", async (req, res) => {
 })
 
 studentService.post("/bio", verifyToken, async (req, res) => {
-  const userId = req.body.userId;
-  const role = req.body.role;
-  // console.log(userId, role);
-  console.log(req);
+  const authData = req.body.authData;
+  const userId = authData.userId;
+  const role = authData.role;
+  const bio = req.body.bio;
   try {
-
+    if (role != "student") throw new Error(`This user ${userId} is not a student`);
+    await updateStudentBio(userId, bio)
     res.status(200).json({message: "Successfully updated bio"});
   } catch (err) {
     res.status(500).json({message: "Error bio"});
