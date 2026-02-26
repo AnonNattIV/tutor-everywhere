@@ -9,7 +9,7 @@ import 'package:tutoreverywhere_frontend/service/api.dart';
 
 class StudentProfilePage extends StatefulWidget {
   const StudentProfilePage({
-    super.key, 
+    super.key,
     required this.userId,
     this.embedded = false,
   });
@@ -25,12 +25,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   final ImagePicker _picker = ImagePicker();
   File? _image; // Locally picked image (overrides fetched URL temporarily)
   String _bio = '';
-  
+  final TextEditingController _bioController = TextEditingController();
+  bool _isEditingBio = false;
+
   // Student data state
   StudentData? _student;
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Dio client setup
   late final Dio _dio;
   late final RestClient _client;
@@ -44,17 +46,17 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null,
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) => status != null,
+      ),
+    );
 
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      error: true,
-    ));
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
 
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
@@ -62,12 +64,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Future<void> _fetchStudentData() async {
     try {
       final student = await _client.getStudentsDataById(widget.userId);
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _student = student;
         _bio = student.bio ?? 'Lorem Ipsum';
+        _bioController.text = _bio;
         _isLoading = false;
       });
     } on DioException catch (e) {
@@ -93,12 +96,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   String? _getProfilePictureUrl() {
     final picture = _student?.profilePicture;
     if (picture == null || picture.isEmpty) return null;
-    
+
     // Special case: default profile picture needs assets path prefix
     if (picture.contains('default_pfp.png')) {
       return '${_baseUrl}assets/pfp/default_pfp.png';
     }
-    
+
     // Return absolute URL if already full, otherwise prepend base URL
     return picture.startsWith('http') ? picture : '$_baseUrl$picture';
   }
@@ -115,7 +118,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     setState(() {
       _image = File(pickedFile.path);
     });
-    
+
     // TODO: Upload image to server and update student profile via API
   }
 
@@ -150,6 +153,40 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
+  void _startBioEdit() {
+    _bioController.text = _bio;
+    setState(() {
+      _isEditingBio = true;
+    });
+  }
+
+  void _cancelBioEdit() {
+    _bioController.text = _bio;
+    setState(() {
+      _isEditingBio = false;
+    });
+  }
+
+  void _saveBioMock() {
+    final value = _bioController.text.trim();
+    if (value.isEmpty || value == _bio) {
+      setState(() {
+        _isEditingBio = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _bio = value;
+      _isEditingBio = false;
+    });
+
+    // temporary message at the bottom to confirm the local save succeeded.
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Bio updated')));
+  }
+
   String _formatDateOfBirth(Object? dateValue) {
     // 1. Handle null or empty
     if (dateValue == null) return 'Not specified';
@@ -159,7 +196,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     // 2. If it's already a DateTime object
     if (dateValue is DateTime) {
       date = dateValue;
-    } 
+    }
     // 3. If it's a String (most common from API)
     else if (dateValue is String) {
       if (dateValue.isEmpty) return 'Not specified';
@@ -169,7 +206,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         debugPrint('Failed to parse date string: $dateValue');
         return 'Invalid date';
       }
-    } 
+    }
     // 4. Fallback for other types
     else {
       debugPrint('Unknown date type: ${dateValue.runtimeType}');
@@ -183,7 +220,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   // Returns gender icon widget or null if gender is not specified
   Widget? _buildGenderIcon(String? gender) {
     if (gender == null || gender.isEmpty) return null;
-    
+
     final isMale = gender.toLowerCase() == 'male';
     return Icon(
       isMale ? Icons.male : Icons.female,
@@ -195,7 +232,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   // Returns verified badge widget or null if not verified
   Widget? _buildVerifiedBadge(bool? verified) {
     if (verified != true) return null;
-    
+
     return Container(
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.all(4),
@@ -203,11 +240,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         color: Colors.blue,
         shape: BoxShape.circle,
       ),
-      child: const Icon(
-        Icons.check,
-        size: 14,
-        color: Colors.white,
-      ),
+      child: const Icon(Icons.check, size: 14, color: Colors.white),
     );
   }
 
@@ -215,7 +248,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Widget build(BuildContext context) {
     // Loading state
     if (_isLoading) {
-      return widget.embedded 
+      return widget.embedded
           ? const Center(child: CircularProgressIndicator())
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
@@ -245,7 +278,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
                     Text('Error: $_errorMessage'),
                     const SizedBox(height: 16),
@@ -267,7 +304,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     final profileImageUrl = _getProfilePictureUrl();
     final gender = _student?.gender;
     final verified = _student?.verified;
-    
+
     // Determine image provider: local pick > fetched URL > default icon
     ImageProvider? profileImage;
     if (_image != null) {
@@ -334,7 +371,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               // Full name
               Text(
                 fullName,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               // Verified badge after name
               if (_buildVerifiedBadge(verified) != null)
@@ -351,7 +391,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
                       children: [
                         const TextSpan(
                           text: 'Date of birth ',
@@ -378,7 +421,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       ),
 
                       IconButton(
-                        onPressed: () {},
+                        onPressed: _isEditingBio ? null : _startBioEdit,
                         icon: const Icon(
                           Icons.edit,
                           size: 16,
@@ -391,14 +434,42 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    _bio,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  if (_isEditingBio) ...[
+                    TextField(
+                      controller: _bioController,
+                      maxLines: 4,
+                      minLines: 2,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter your bio',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: _cancelBioEdit,
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _saveBioMock,
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ] else
+                    Text(
+                      _bio,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -497,6 +568,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   @override
   void dispose() {
+    _bioController.dispose();
     _dio.close(force: true); // Prevent memory leaks
     super.dispose();
   }
