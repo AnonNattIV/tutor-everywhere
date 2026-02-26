@@ -1,6 +1,5 @@
 import dotenv from "dotenv/config";
 import jwt from "jsonwebtoken";
-// import { Request, Response, NextFunction } from 'express';
 
 let secretKey = process.env.AUTH_SECRET_KEY || "defaultKey";
 

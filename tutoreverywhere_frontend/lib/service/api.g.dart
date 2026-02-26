@@ -132,7 +132,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/tutors/${userId}',
+            '/tutors/profile/${userId}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -160,7 +160,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/students/${userId}',
+            '/students/profile/${userId}',
             queryParameters: queryParameters,
             data: _data,
           )

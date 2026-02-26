@@ -15,4 +15,17 @@ async function viewStudentData(userId: string) {
   }
 }
 
+async function updateStudentBio(userId: string, bio: string) {
+  try {
+    await sql`
+      update students
+      set bio = ${bio}
+      where userId = ${userId}
+    `
+  } catch (err) {
+    console.error("Update Student Bio Error")
+    throw err;
+  }
+}
+
 export { viewStudentData }

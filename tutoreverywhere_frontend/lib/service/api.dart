@@ -25,9 +25,9 @@ abstract class RestClient {
   @POST("/register/tutor")
   Future<HttpResponse<void>> registerTutor(@Body() RegisterTutor tutor);
 
-  @GET("/tutors/{userId}")
+  @GET("/tutors/profile/{userId}")
   Future<HttpResponse<TutorData>> getTutorDataById(@Path("userId") String userId);
 
-  @GET("/students/{userId}")
+  @GET("/students/profile/{userId}")
   Future<StudentData> getStudentsDataById(@Path("userId") String userId);
 }

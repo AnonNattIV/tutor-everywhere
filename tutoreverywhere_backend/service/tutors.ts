@@ -5,7 +5,7 @@ import { viewTutorData } from "../controllers/tutors.ts";
 const tutorService = express.Router();
 
 tutorService.use(bodyParser.json());
-tutorService.get("/:userId", async (req, res) => {
+tutorService.get("/profile/:userId", async (req, res) => {
   const params = req.params;
   const userId = params.userId;
   try {

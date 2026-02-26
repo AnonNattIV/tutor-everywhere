@@ -1,11 +1,12 @@
 import express from "express"
 import bodyParser from "body-parser";
 import { viewStudentData } from "../controllers/students.ts";
+import { verifyToken } from "../middleware/verify.ts";
 
 const studentService = express.Router();
 
 studentService.use(bodyParser.json());
-studentService.get("/:userId", async (req, res) => {
+studentService.get("/profile/:userId", async (req, res) => {
   const params = req.params;
   const userId = params.userId;
   try {
@@ -14,6 +15,10 @@ studentService.get("/:userId", async (req, res) => {
   } catch (err) {
     res.status(404).json({message: "Account not found"});
   }
+})
+
+studentService.post("/bio", verifyToken, async (req, res) => {
+  console.log(req.body);
 })
 
 export default studentService
