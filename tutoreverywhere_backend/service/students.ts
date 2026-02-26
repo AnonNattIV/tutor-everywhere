@@ -18,7 +18,16 @@ studentService.get("/profile/:userId", async (req, res) => {
 })
 
 studentService.post("/bio", verifyToken, async (req, res) => {
-  console.log(req.body);
-})
+  const userId = req.body.userId;
+  const role = req.body.role;
+  // console.log(userId, role);
+  console.log(req);
+  try {
+
+    res.status(200).json({message: "Successfully updated bio"});
+  } catch (err) {
+    res.status(500).json({message: "Error bio"});
+  }
+})  
 
 export default studentService
