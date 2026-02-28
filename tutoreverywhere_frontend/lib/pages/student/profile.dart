@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
+import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
 class StudentProfilePage extends StatefulWidget {
@@ -168,17 +170,18 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   void _saveBioMock() {
     final value = _bioController.text.trim();
-    if (value.isEmpty || value == _bio) {
+    try {
+      final token = context.read<AuthProvider>().token;
+      _client.setStudentBio(token!, value);
       setState(() {
+        _bio = value;
         _isEditingBio = false;
       });
-      return;
+    } on DioException catch (e) {
+      print(e.response?.data['message']);
+    } catch (e) {
+      print(e);
     }
-
-    setState(() {
-      _bio = value;
-      _isEditingBio = false;
-    });
 
     // temporary message at the bottom to confirm the local save succeeded.
     ScaffoldMessenger.of(
