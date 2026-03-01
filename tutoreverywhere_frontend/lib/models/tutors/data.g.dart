@@ -15,6 +15,7 @@ TutorData _$TutorDataFromJson(Map<String, dynamic> json) => TutorData(
   profilePicture: json['profile_picture'] as String,
   bio: json['bio'] as String?,
   verified: json['verified'] as bool,
+  preferredPlace: json['preferred_place'] as String?,
 );
 
 Map<String, dynamic> _$TutorDataToJson(TutorData instance) => <String, dynamic>{
@@ -26,4 +27,5 @@ Map<String, dynamic> _$TutorDataToJson(TutorData instance) => <String, dynamic>{
   'profile_picture': instance.profilePicture,
   'bio': instance.bio,
   'verified': instance.verified,
+  'preferred_place': instance.preferredPlace,
 };

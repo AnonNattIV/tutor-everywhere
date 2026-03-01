@@ -1,39 +1,56 @@
+// lib/pages/tutor/profile.dart
 import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, this.userId, this.embedded = true});
+// Import tab widgets
+import 'profile_tab.dart';
+import 'reviews_tab.dart';
+import 'subjects_tab.dart';
 
-  final String? userId;
+class TutorProfilePage extends StatefulWidget {
+  const TutorProfilePage({
+    super.key,
+    required this.userId,
+    this.embedded = false,
+  });
+
+  final String userId;
   final bool embedded;
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<TutorProfilePage> createState() => _TutorProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _TutorProfilePageState extends State<TutorProfilePage> {
   final ImagePicker _picker = ImagePicker();
-  final TextEditingController _bioController = TextEditingController();
-
   File? _image;
+
+  // Bio state
   String _bio = '';
+  final TextEditingController _bioController = TextEditingController();
   bool _isEditingBio = false;
 
+  // Preferred place state
+  String _preferredPlace = '';
+  final TextEditingController _preferredPlaceController = TextEditingController();
+  bool _isEditingPreferredPlace = false;
+
+  // Data state
   TutorData? _tutor;
   bool _isLoading = true;
   String? _errorMessage;
 
+  // API client
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = 'http://10.0.2.2:3000/';
+  static const String _baseUrl = "http://10.0.2.2:3000/";
 
   @override
   void initState() {
@@ -43,52 +60,25 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _setupDio() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: _baseUrl,
-        contentType: 'application/json',
-        validateStatus: (status) => status != null,
-      ),
-    );
-
-    _dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true, error: true),
-    );
-
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      contentType: "application/json",
+      validateStatus: (status) => status != null,
+    ));
+    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
-  String? _resolvedUserId() =>
-      widget.userId ?? context.read<AuthProvider>().userId;
-
   Future<void> _fetchTutorData() async {
-    final userId = _resolvedUserId();
-    if (userId == null || userId.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Missing user ID';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
     try {
-      final response = await _client.getTutorDataById(userId);
-      final tutor = response.data;
-
+      final tutor = await _client.getTutorDataById(widget.userId);
       if (!mounted) return;
-
       setState(() {
         _tutor = tutor;
-        _bio = (tutor.bio?.trim().isNotEmpty ?? false)
-            ? tutor.bio!.trim()
-            : 'Lorem Ipsum';
+        _bio = tutor.bio?.trim() ?? 'No bio provided';
         _bioController.text = _bio;
+        _preferredPlace = tutor.preferredPlace?.trim() ?? 'Not specified';
+        _preferredPlaceController.text = _preferredPlace;
         _isLoading = false;
       });
     } on DioException catch (e) {
@@ -98,117 +88,144 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
       });
       debugPrint('Dio Error: ${e.type} - ${e.message}');
-      debugPrint('Response: ${e.response?.data}');
     } catch (e, stackTrace) {
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Unexpected error: $e';
         _isLoading = false;
       });
-      debugPrint('Unexpected Error: $e');
-      debugPrint('Stack: $stackTrace');
+      debugPrint('Error: $e\nStack: $stackTrace');
     }
   }
 
   String? _getProfilePictureUrl() {
     final picture = _tutor?.profilePicture;
-    if (picture.isEmptyOrNull) return null;
-
-    if (picture!.contains('default_pfp.png')) {
+    if (picture == null || picture.isEmpty) return null;
+    if (picture.contains('default_pfp.png')) {
       return '${_baseUrl}assets/pfp/default_pfp.png';
     }
-
     return picture.startsWith('http') ? picture : '$_baseUrl$picture';
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(
-      source: source,
-      imageQuality: 80,
-      maxWidth: 1024,
-    );
-
+    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80, maxWidth: 1024);
     if (pickedFile == null) return;
-
-    setState(() {
-      _image = File(pickedFile.path);
-    });
-
-    // TODO: Upload image to server and persist profile picture.
+    setState(() => _image = File(pickedFile.path));
+    // TODO: Upload to server
   }
 
   void _showImageSourceActionSheet() {
     showModalBottomSheet<void>(
       context: context,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo),
-                title: const Text('Choose from gallery'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take photo'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
+  // Bio editing
   void _startBioEdit() {
     _bioController.text = _bio;
-    setState(() {
-      _isEditingBio = true;
-    });
+    setState(() => _isEditingBio = true);
   }
 
   void _cancelBioEdit() {
     _bioController.text = _bio;
-    setState(() {
-      _isEditingBio = false;
-    });
+    setState(() => _isEditingBio = false);
   }
 
-  void _saveBioMock() {
+  void _saveBio() {
     final value = _bioController.text.trim();
-    if (value.isEmpty || value == _bio) {
-      setState(() {
-        _isEditingBio = false;
-      });
+    if (value.isEmpty) {
+      _cancelBioEdit();
       return;
     }
-
-    setState(() {
-      _bio = value;
-      _isEditingBio = false;
-    });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Bio updated')));
+    try {
+      final token = context.read<AuthProvider>().token;
+      _client.setTutorBio(token!, value);
+      setState(() {
+        _bio = value;
+        _isEditingBio = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bio updated')));
+    } on DioException catch (e) {
+      print('Bio save error: ${e.response?.data['message']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}')),
+      );
+    }
   }
 
-  String _formatDateOfBirth(DateTime? dateValue) {
+  // Preferred place editing
+  void _startPreferredPlaceEdit() {
+    _preferredPlaceController.text = _preferredPlace;
+    setState(() => _isEditingPreferredPlace = true);
+  }
+
+  void _cancelPreferredPlaceEdit() {
+    _preferredPlaceController.text = _preferredPlace;
+    setState(() => _isEditingPreferredPlace = false);
+  }
+
+  void _savePreferredPlace() {
+    final value = _preferredPlaceController.text.trim();
+    if (value.isEmpty) {
+      _cancelPreferredPlaceEdit();
+      return;
+    }
+    try {
+      final token = context.read<AuthProvider>().token;
+      _client.setTutorPreferredPlace(token!, value);
+      setState(() {
+        _preferredPlace = value;
+        _isEditingPreferredPlace = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preferred place updated')));
+    } on DioException catch (e) {
+      print('Preferred place save error: ${e.response?.data['message']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}')),
+      );
+    }
+  }
+
+  String _formatDateOfBirth(Object? dateValue) {
     if (dateValue == null) return 'Not specified';
-    return DateFormat('d MMMM yyyy').format(dateValue);
+    DateTime? date;
+    if (dateValue is DateTime) {
+      date = dateValue;
+    } else if (dateValue is String) {
+      if (dateValue.isEmpty) return 'Not specified';
+      date = DateTime.tryParse(dateValue);
+      if (date == null) return 'Invalid date';
+    } else {
+      return 'Not specified';
+    }
+    return DateFormat('d MMMM yyyy').format(date);
   }
 
   Widget? _buildGenderIcon(String? gender) {
     if (gender == null || gender.isEmpty) return null;
-
     final isMale = gender.toLowerCase() == 'male';
     return Icon(
       isMale ? Icons.male : Icons.female,
@@ -219,73 +236,76 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget? _buildVerifiedBadge(bool? verified) {
     if (verified != true) return null;
-
     return Container(
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(
-        color: Colors.blue,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
       child: const Icon(Icons.check, size: 14, color: Colors.white),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed ?? () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label))),
+      icon: Icon(icon, size: 18, color: Colors.white),
+      label: Text(label, style: const TextStyle(color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.deepPurple.shade600,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Loading state
     if (_isLoading) {
       return widget.embedded
           ? const Center(child: CircularProgressIndicator())
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(
-                title: const Text('My Profile'),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                centerTitle: true,
-              ),
+              appBar: AppBar(title: const Text('Teacher Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
               body: const Center(child: CircularProgressIndicator()),
             );
     }
 
+    // Error state
     if (_errorMessage != null) {
-      final errorBody = Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
-            const SizedBox(height: 16),
-            Text('Error: $_errorMessage'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchTutorData,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-
       return widget.embedded
-          ? errorBody
+          ? Center(child: Text('Error: $_errorMessage'))
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(
-                title: const Text('My Profile'),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                centerTitle: true,
+              appBar: AppBar(title: const Text('Teacher Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text('Error: $_errorMessage'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: _fetchTutorData, child: const Text('Retry')),
+                  ],
+                ),
               ),
-              body: errorBody,
             );
     }
 
-    final tutor = _tutor;
-    final firstName = tutor?.firstname ?? 'John';
-    final lastName = tutor?.lastname ?? 'Doe';
-    final fullName = '$firstName $lastName';
+    // Extract values
+    final firstName = _tutor?.firstname?.trim() ?? 'Teacher';
+    final lastName = _tutor?.lastname?.trim() ?? 'Name';
+    final fullName = '$firstName $lastName'.trim();
+    final dateOfBirth = _formatDateOfBirth(_tutor?.dateofbirth);
     final profileImageUrl = _getProfilePictureUrl();
-    final gender = tutor?.gender;
-    final verified = tutor?.verified;
+    final gender = _tutor?.gender;
+    final verified = _tutor?.verified;
+    final isOwner = context.read<AuthProvider>().userId == widget.userId;
 
     ImageProvider? profileImage;
     if (_image != null) {
@@ -294,183 +314,114 @@ class _ProfilePageState extends State<ProfilePage> {
       profileImage = NetworkImage(profileImageUrl);
     }
 
-    final profileContent = SingleChildScrollView(
+    final profileContent = DefaultTabController(
+      length: 3,
       child: Column(
         children: [
           const SizedBox(height: 20),
+          // Profile Picture
           Center(
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: _showImageSourceActionSheet,
+                  onTap: isOwner ? _showImageSourceActionSheet : null,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
                     backgroundImage: profileImage,
-                    child: profileImage == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 70,
-                            color: Colors.deepPurple,
-                          )
-                        : null,
+                    child: profileImage == null ? const Icon(Icons.person, size: 70, color: Colors.deepPurple) : null,
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: _showImageSourceActionSheet,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 20,
+                if (isOwner)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _showImageSourceActionSheet,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          // Name + Gender + Verified
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (_buildGenderIcon(gender) != null) ...[
-                _buildGenderIcon(gender)!,
-                const SizedBox(width: 6),
-              ],
-              Text(
-                fullName,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (_buildVerifiedBadge(verified) != null)
-                _buildVerifiedBadge(verified)!,
+              if (_buildGenderIcon(gender) != null) ...[_buildGenderIcon(gender)!, const SizedBox(width: 6)],
+              Text(fullName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              if (_buildVerifiedBadge(verified) != null) ...[const SizedBox(width: 8), _buildVerifiedBadge(verified)!],
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Action Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildActionButton(icon: Icons.chat_bubble, label: 'Tap to chat', onPressed: () {
+                // TODO: Navigate to chat
+              }),
+              const SizedBox(width: 12),
+              _buildActionButton(icon: Icons.calendar_month, label: 'View calendar', onPressed: () {
+                // TODO: Navigate to calendar
+              }),
             ],
           ),
           const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: SizedBox(
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'Date of birth ',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        TextSpan(
-                          text: _formatDateOfBirth(tutor?.dateofbirth),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Text(
-                        'Bio',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _isEditingBio ? null : _startBioEdit,
-                        icon: const Icon(
-                          Icons.edit,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Edit bio',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (_isEditingBio) ...[
-                    TextField(
-                      controller: _bioController,
-                      maxLines: 4,
-                      minLines: 2,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your bio',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: _cancelBioEdit,
-                          child: const Text('Cancel'),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _saveBioMock,
-                          child: const Text('Save'),
-                        ),
-                      ],
-                    ),
-                  ] else
-                    Text(
-                      _bio,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
-              ),
+          // TabBar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)),
+            ),
+            child: const TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
+              labelColor: Colors.deepPurple,
+              unselectedLabelColor: Colors.black87,
+              indicatorColor: Colors.deepPurple,
+              indicatorWeight: 3,
+              tabs: [Tab(text: 'Profile'), Tab(text: 'Reviews'), Tab(text: 'Subjects')],
             ),
           ),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // TabBarView
+          Expanded(
+            child: TabBarView(
               children: [
-                const Text(
-                  'Account',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                // Profile Tab
+                ProfileTab(
+                  dateOfBirth: dateOfBirth,
+                  preferredPlace: _preferredPlace,
+                  bio: _bio,
+                  isEditingBio: _isEditingBio,
+                  isEditingPreferredPlace: _isEditingPreferredPlace,
+                  bioController: _bioController,
+                  preferredPlaceController: _preferredPlaceController,
+                  onStartEditBio: _startBioEdit,
+                  onCancelEditBio: _cancelBioEdit,
+                  onSaveBio: _saveBio,
+                  onStartEditPreferredPlace: _startPreferredPlaceEdit,
+                  onCancelEditPreferredPlace: _cancelPreferredPlaceEdit,
+                  onSavePreferredPlace: _savePreferredPlace,
+                  canEdit: isOwner,
                 ),
-                const SizedBox(height: 10),
-                _buildMenuItem(Icons.school, 'My Subjects'),
-                _buildMenuItem(Icons.history, 'Lesson History'),
+                // Reviews Tab
+                ReviewsTab(tutorId: widget.userId, tutorName: fullName),
+                // Subjects Tab
+                SubjectsTab(tutorId: widget.userId, tutorName: fullName),
               ],
             ),
           ),
-          const SizedBox(height: 30),
         ],
       ),
     );
@@ -480,10 +431,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          'My Profile',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Teacher Profile', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -492,31 +440,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.grey.shade700, size: 22),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-      ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios,
-        size: 16,
-        color: Colors.grey,
-      ),
-      onTap: () {},
-    );
-  }
-
   @override
   void dispose() {
     _bioController.dispose();
+    _preferredPlaceController.dispose();
     _dio.close(force: true);
     super.dispose();
   }
-}
-
-extension on String? {
-  bool get isEmptyOrNull => this == null || this!.isEmpty;
 }

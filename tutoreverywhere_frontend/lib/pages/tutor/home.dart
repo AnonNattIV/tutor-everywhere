@@ -125,7 +125,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
       ),
       body: <Widget>[
         ChatPage(),
-        ProfilePage(),
+        TutorProfilePage(userId: context.read<AuthProvider>().userId!, embedded: true,),
         Center(child: Text("Schedule")),
       ][currentPageIndex]
     );

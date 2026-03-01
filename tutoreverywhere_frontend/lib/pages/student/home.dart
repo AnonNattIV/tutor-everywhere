@@ -92,7 +92,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
     final pages = <Widget>[
       _buildHomeTab(),
       const ChatPage(),
-      StudentProfilePage(embedded: true, userId: context.read<AuthProvider>().userId!),
+      StudentProfilePage(embedded: true, userId: context.read<AuthProvider>().userId!, showEmbeddedAppBar: false,),
     ];
 
     return Scaffold(

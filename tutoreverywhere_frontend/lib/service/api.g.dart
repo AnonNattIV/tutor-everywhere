@@ -123,12 +123,12 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<HttpResponse<TutorData>> getTutorDataById(String userId) async {
+  Future<TutorData> getTutorDataById(String userId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<HttpResponse<TutorData>>(
+    final _options = _setStreamType<TutorData>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -146,8 +146,50 @@ class _RestClient implements RestClient {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
     }
-    final httpResponse = HttpResponse(_value, _result);
-    return httpResponse;
+    return _value;
+  }
+
+  @override
+  Future<void> setTutorBio(String jwtToken, String bio) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'bio': bio};
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/bio',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> setTutorPreferredPlace(
+    String jwtToken,
+    dynamic preferred_place,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'preferred_place': preferred_place};
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/preferredPlace',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
   }
 
   @override
@@ -189,6 +231,56 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/students/bio',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<List<Review>> getReviewsByRevieweeId(String tutorId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<List<Review>>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/reviews/${tutorId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<Review> _value;
+    try {
+      _value = _result.data!
+          .map((dynamic i) => Review.fromJson(i as Map<String, dynamic>))
+          .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<void> addReview(String jwtToken, Review review) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = <String, dynamic>{};
+    _data.addAll(review.toJson());
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/reviews',
             queryParameters: queryParameters,
             data: _data,
           )

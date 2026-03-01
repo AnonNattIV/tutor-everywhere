@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import '../models/jwt.dart';
@@ -27,7 +28,13 @@ abstract class RestClient {
 
   // Tutors
   @GET("/tutors/profile/{userId}")
-  Future<HttpResponse<TutorData>> getTutorDataById(@Path("userId") String userId);
+  Future<TutorData> getTutorDataById(@Path("userId") String userId);
+
+  @POST("/tutors/bio")
+  Future<void> setTutorBio(@Header("Authorization") String jwtToken, @Field("bio") String bio );
+
+  @POST("/tutors/preferredPlace")
+  Future<void> setTutorPreferredPlace(@Header("Authorization") String jwtToken, @Field("preferred_place") preferred_place);
 
   // Students
   @GET("/students/profile/{userId}")
@@ -35,4 +42,12 @@ abstract class RestClient {
 
   @POST("/students/bio")
   Future<void> setStudentBio(@Header("Authorization") String jwtToken, @Field("bio") String bio );
+
+  // Reviews
+
+  @GET("/reviews/{tutorId}")
+  Future<List<Review>> getReviewsByRevieweeId(@Path("tutorId") String tutorId);
+
+  @POST("/reviews")
+  Future<void> addReview(@Header("Authorization") String jwtToken, @Body() Review review);
 }

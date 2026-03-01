@@ -13,10 +13,12 @@ class StudentProfilePage extends StatefulWidget {
     super.key,
     required this.userId,
     this.embedded = false,
+    this.showEmbeddedAppBar = true,
   });
 
-  final String userId; // User UUID to fetch data for
+  final String userId;
   final bool embedded;
+  final bool showEmbeddedAppBar;
 
   @override
   State<StudentProfilePage> createState() => _StudentProfilePageState();
@@ -502,7 +504,33 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
 
     if (widget.embedded) {
-      return profileContent;
+      if (widget.showEmbeddedAppBar) {
+        // Case 1: Navigated from reviews tab → show back button AppBar
+        return Scaffold(
+          backgroundColor: Colors.grey.shade50,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              '$firstName $lastName',
+              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
+          ),
+          body: profileContent,
+        );
+      } else {
+        // Case 2: Embedded in parent with its own AppBar (e.g., StudentHomePage tab)
+        // → Just return content wrapped in Material (no duplicate AppBar)
+        return Material(
+          color: Colors.grey.shade50,
+          child: profileContent,
+        );
+      }
     }
 
     return Scaffold(
@@ -515,6 +543,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        // 👇 Removed PopupMenuButton since StudentHomePage already has it
       ),
       body: profileContent,
       bottomNavigationBar: BottomNavigationBar(
