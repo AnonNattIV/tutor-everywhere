@@ -222,6 +222,74 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<void> addTutorSubject(
+    String jwtToken,
+    String subject,
+    int price,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'subject': subject, 'price': price};
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/subjects/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> updateTutorSubjectPrice(
+    String jwtToken,
+    String subject,
+    int price,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'subject': subject, 'price': price};
+    final _options = _setStreamType<void>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/subjects/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> deleteTutorSubject(String jwtToken, String subject) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'subject': subject};
+    final _options = _setStreamType<void>(
+      Options(method: 'DELETE', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/subjects/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
   Future<StudentData> getStudentsDataById(String userId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

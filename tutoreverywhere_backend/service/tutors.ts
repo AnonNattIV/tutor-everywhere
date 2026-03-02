@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, viewTutorData } from "../controllers/tutors.ts";
+import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
 
 const tutorService = express.Router();
@@ -45,6 +45,7 @@ tutorService.post("/preferredPlace", verifyToken, async (req, res) => {
   }
 })
 
+// Subjects
 tutorService.get("/subjects/:userId", async (req, res) => {
   const params = req.params;
   const userId = params.userId;
@@ -53,6 +54,50 @@ tutorService.get("/subjects/:userId", async (req, res) => {
     res.status(200).json(tutorSubjects);
   } catch (err) {
     res.status(404).json({message: "Account not found"});
+  }
+})
+
+tutorService.post("/subjects/", verifyToken, async (req, res) => {
+  const authData = req.body.authData;
+  const userId = authData.userId;
+  const role = authData.role;
+  const subject = req.body.subject;
+  const price = req.body.price;
+  try {
+    if (role != "tutor") throw new Error(`This user ${userId} is not a tutor`);
+    await addTutorSubject(userId, subject, price);
+    res.status(200).json({message: "Successfully added tutor subject"});
+  } catch (err) {
+    res.status(500).json({message: "Error bio"});
+  }
+})
+
+tutorService.patch("/subjects/", verifyToken, async (req, res) => {
+  const authData = req.body.authData;
+  const userId = authData.userId;
+  const role = authData.role;
+  const subject = req.body.subject;
+  const price = req.body.price;
+  try {
+    if (role != "tutor") throw new Error(`This user ${userId} is not a tutor`);
+    await updateTutorSubjectPrice(userId, subject, price);
+    res.status(200).json({message: "Successfully updated tutor subject"});
+  } catch (err) {
+    res.status(500).json({message: "Error bio"});
+  }
+})
+
+tutorService.delete("/subjects/", verifyToken, async (req, res) => {
+  const authData = req.body.authData;
+  const userId = authData.userId;
+  const role = authData.role;
+  const subject = req.body.subject;
+  try {
+    if (role != "tutor") throw new Error(`This user ${userId} is not a tutor`);
+    await deleteTutorSubject(userId, subject);
+    res.status(200).json({message: "Successfully deleted tutor subject"});
+  } catch (err) {
+    res.status(500).json({message: "Error bio"});
   }
 })
 

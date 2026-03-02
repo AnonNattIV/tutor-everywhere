@@ -16,7 +16,6 @@ async function viewStudentData(userId: string) {
 }
 
 async function updateStudentBio(userId: string, bio: string) {
-  console.log(userId, bio);
   try {
     await sql`
       update students

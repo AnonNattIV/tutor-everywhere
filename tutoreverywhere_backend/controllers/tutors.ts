@@ -55,4 +55,43 @@ async function getTutorSubjects(userId: string) {
   }
 }
 
-export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects }
+async function addTutorSubject(userId : string, subject: string, price: number) {
+  try {
+    const tutor_subject = await sql`
+      insert into tutor_subjects (tutor_uuid, subject, price)
+      values (${userId}, ${subject}, ${price})
+
+    `
+    return tutor_subject
+  } catch (err) {
+    console.error("Add Tutor Subject Error")
+    throw err;
+  }
+}
+
+async function updateTutorSubjectPrice(userId : string, subject: string, price: number) {
+  try {
+    await sql`
+      update tutor_subjects
+      set price = ${price}
+      where tutor_uuid = ${userId} and subject = ${subject}
+    `
+  } catch (err) {
+    console.error("Update Tutor Subject Error")
+    throw err;
+  }
+}
+
+async function deleteTutorSubject(userId : string, subject: string) {
+  try {
+    await sql`
+      delete from tutor_subjects
+      where tutor_uuid = ${userId} and subject = ${subject}
+    `
+  } catch (err) {
+    console.error("Delete Tutor Subject Error")
+    throw err;
+  }
+}
+
+export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject }

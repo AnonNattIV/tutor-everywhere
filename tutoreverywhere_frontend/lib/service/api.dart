@@ -37,8 +37,18 @@ abstract class RestClient {
   @POST("/tutors/preferredPlace")
   Future<void> setTutorPreferredPlace(@Header("Authorization") String jwtToken, @Field("preferred_place") preferred_place);
 
+  // Tutors: Subjects
   @GET("/tutors/subjects/{userId}")
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);
+
+  @POST("/tutors/subjects/")
+  Future<void> addTutorSubject(@Header("Authorization") String jwtToken, @Field("subject") String subject, @Field("price") int price);
+
+  @PATCH("/tutors/subjects/")
+  Future<void> updateTutorSubjectPrice(@Header("Authorization") String jwtToken, @Field("subject") String subject, @Field("price") int price);
+
+  @DELETE("/tutors/subjects/")
+  Future<void> deleteTutorSubject(@Header("Authorization") String jwtToken, @Field("subject") String subject);
 
   // Students
   @GET("/students/profile/{userId}")
