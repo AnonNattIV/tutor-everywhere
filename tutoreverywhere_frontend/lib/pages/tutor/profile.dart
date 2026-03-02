@@ -365,19 +365,20 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           ),
           const SizedBox(height: 20),
           // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildActionButton(icon: Icons.chat_bubble, label: 'Tap to chat', onPressed: () {
-                // TODO: Navigate to chat
-              }),
-              const SizedBox(width: 12),
-              _buildActionButton(icon: Icons.calendar_month, label: 'View calendar', onPressed: () {
-                // TODO: Navigate to calendar
-              }),
-            ],
-          ),
-          const SizedBox(height: 24),
+          if (!isOwner)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildActionButton(icon: Icons.chat_bubble, label: 'Tap to chat', onPressed: () {
+                  // TODO: Navigate to chat
+                }),
+                const SizedBox(width: 12),
+                _buildActionButton(icon: Icons.calendar_month, label: 'View calendar', onPressed: () {
+                  // TODO: Navigate to calendar
+                }),
+              ],
+            ),
+          if (!isOwner) const SizedBox(height: 24),
           // TabBar
           Container(
             decoration: BoxDecoration(
