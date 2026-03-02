@@ -41,4 +41,18 @@ async function updateTutorPreferredPlace(userId: string, preferred_place: string
   }
 }
 
-export { viewTutorData, updateTutorBio, updateTutorPreferredPlace }
+async function getTutorSubjects(userId: string) {
+  try {
+    const subjects = await sql`
+      select tutor_uuid, subject, price
+      from tutor_subjects
+      where tutor_uuid = ${userId}
+    `
+    return subjects;
+  } catch (err) {
+    console.error("Get Tutor Subjects Error")
+    throw err;
+  }
+}
+
+export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects }

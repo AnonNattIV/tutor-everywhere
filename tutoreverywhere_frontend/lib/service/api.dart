@@ -3,6 +3,7 @@ import 'package:retrofit/retrofit.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
+import 'package:tutoreverywhere_frontend/models/tutors/subjects.dart';
 import '../models/jwt.dart';
 import '../models/auth.dart';
 import '../models/register/student.dart';
@@ -35,6 +36,9 @@ abstract class RestClient {
 
   @POST("/tutors/preferredPlace")
   Future<void> setTutorPreferredPlace(@Header("Authorization") String jwtToken, @Field("preferred_place") preferred_place);
+
+  @GET("/tutors/subjects/{userId}")
+  Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);
 
   // Students
   @GET("/students/profile/{userId}")

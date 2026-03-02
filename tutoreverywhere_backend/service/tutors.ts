@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { updateTutorBio, updateTutorPreferredPlace, viewTutorData } from "../controllers/tutors.ts";
+import { getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, viewTutorData } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
 
 const tutorService = express.Router();
@@ -43,6 +43,17 @@ tutorService.post("/preferredPlace", verifyToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({message: "Error bio"});
   }
-})  
+})
+
+tutorService.get("/subjects/:userId", async (req, res) => {
+  const params = req.params;
+  const userId = params.userId;
+  try {
+    const tutorSubjects = await getTutorSubjects(userId);
+    res.status(200).json(tutorSubjects);
+  } catch (err) {
+    res.status(404).json({message: "Account not found"});
+  }
+})
 
 export default tutorService
