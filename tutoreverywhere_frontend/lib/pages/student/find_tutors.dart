@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tutoreverywhere_frontend/pages/student/teacher_profile.dart';
 
 class FindTutorsPage extends StatefulWidget {
@@ -507,16 +508,28 @@ class _FilterTutorsSheet extends StatefulWidget {
 }
 
 class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
-  static const Object _anySelection = Object();
   late String? _subject = widget.initial.subject;
   late String? _province = widget.initial.province;
   late String? _zone = widget.initial.zone;
   late String? _location = widget.initial.location;
   late int? _maxPrice = widget.initial.maxPrice;
   late _TutorSort _sortBy = widget.initial.sortBy;
+  late final TextEditingController _priceController;
 
   static const int _minPrice = 100;
   static const int _maxPriceCap = 1000;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController = TextEditingController(text: _maxPrice?.toString() ?? '');
+  }
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -563,7 +576,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
               const SizedBox(height: 8),
               _buildSectionLabel('Quick Search'),
               const SizedBox(height: 12),
-              _buildSectionLabel('Quick Subject'),
+              _buildSectionLabel('Subject'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -583,7 +596,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildSectionLabel('Quick Province'),
+              _buildSectionLabel('Province'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -603,13 +616,13 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildSectionLabel('Quick Sort'),
+              _buildSectionLabel('Sort'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final sort in _TutorSort.values.take(3))
+                  for (final sort in _TutorSort.values)
                     _buildChoiceChip(
                       label: sort.shortLabel,
                       selected: _sortBy == sort,
@@ -618,7 +631,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildSectionLabel('Quick Price'),
+              _buildSectionLabel('Price'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -627,55 +640,100 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                   _buildChoiceChip(
                     label: 'No limit',
                     selected: _maxPrice == null,
-                    onSelected: () => setState(() => _maxPrice = null),
+                    onSelected: () => _updateMaxPrice(null),
                   ),
                   for (final value in const [250, 300, 400])
                     _buildChoiceChip(
                       label: '<= $value',
                       selected: _maxPrice == value,
-                      onSelected: () => setState(() => _maxPrice = value),
+                      onSelected: () => _updateMaxPrice(value),
                     ),
                 ],
               ),
               const SizedBox(height: 20),
-              _buildFilterRow(
+              _buildSectionLabel('Filters'),
+              const SizedBox(height: 12),
+              _buildDropdownField<String?>(
                 label: 'Subject',
-                value: _subject ?? 'Any subject',
-                onTap: _pickSubject,
+                value: _subject,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any subject',
+                  options: widget.subjects,
+                ),
+                onChanged: (value) => setState(() => _subject = value),
               ),
-              _buildDivider(),
-              _buildFilterRow(
+              const SizedBox(height: 12),
+              _buildDropdownField<String?>(
                 label: 'Province',
-                value: _province ?? 'Any province',
-                onTap: _pickProvince,
+                value: _province,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any province',
+                  options: widget.provinces,
+                ),
+                onChanged: (value) => setState(() => _province = value),
               ),
-              _buildDivider(),
-              _buildFilterRow(
+              const SizedBox(height: 12),
+              _buildDropdownField<String?>(
                 label: 'Zone',
-                value: _zone ?? 'Any zone',
-                onTap: _pickZone,
+                value: _zone,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any zone',
+                  options: widget.zones,
+                ),
+                onChanged: (value) => setState(() => _zone = value),
               ),
-              _buildDivider(),
-              _buildFilterRow(
-                label: 'Sort',
-                value: _sortBy.label,
-                onTap: _pickSort,
-              ),
-              _buildDivider(),
-              _buildFilterRow(
-                label: 'Price',
-                value: _maxPrice == null
-                    ? 'No limit'
-                    : 'Not over $_maxPrice Baht',
-                onTap: _pickMaxPrice,
-              ),
-              _buildDivider(),
-              _buildFilterRow(
+              const SizedBox(height: 12),
+              _buildDropdownField<String?>(
                 label: 'Location',
-                value: _location ?? 'Any location',
-                onTap: _pickLocation,
+                value: _location,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any location',
+                  options: widget.locations,
+                ),
+                onChanged: (value) => setState(() => _location = value),
               ),
-              _buildDivider(),
+              const SizedBox(height: 16),
+              _buildSectionLabel('Price Limit'),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                value: _maxPrice != null,
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: Colors.deepPurple,
+                title: const Text(
+                  'Enable price limit',
+                  style: TextStyle(fontSize: 15, color: Colors.black87),
+                ),
+                onChanged: (enabled) {
+                  if (enabled) {
+                    _updateMaxPrice(_maxPrice ?? 500);
+                    return;
+                  }
+                  _updateMaxPrice(null);
+                },
+              ),
+              TextField(
+                controller: _priceController,
+                enabled: _maxPrice != null,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: 'Custom max price',
+                  hintText: 'Enter price in Baht',
+                  filled: true,
+                  fillColor: _maxPrice != null
+                      ? Colors.white
+                      : Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                onChanged: _handlePriceChanged,
+              ),
               const SizedBox(height: 8),
               if (_maxPrice != null) ...[
                 Text(
@@ -685,28 +743,27 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                     color: Colors.black87,
                   ),
                 ),
-                SliderTheme(
-                  data: theme.sliderTheme.copyWith(
-                    activeTrackColor: Colors.deepPurple,
-                    thumbColor: Colors.deepPurple,
-                    overlayColor: Colors.deepPurple.withValues(alpha: 0.15),
-                  ),
-                  child: Slider(
-                    min: _minPrice.toDouble(),
-                    max: _maxPriceCap.toDouble(),
-                    divisions: (_maxPriceCap - _minPrice) ~/ 50,
-                    value: _maxPrice!.toDouble().clamp(
-                      _minPrice.toDouble(),
-                      _maxPriceCap.toDouble(),
+                if (_maxPrice! >= _minPrice)
+                  SliderTheme(
+                    data: theme.sliderTheme.copyWith(
+                      activeTrackColor: Colors.deepPurple,
+                      thumbColor: Colors.deepPurple,
+                      overlayColor: Colors.deepPurple.withValues(alpha: 0.15),
                     ),
-                    label: '$_maxPrice',
-                    onChanged: (value) {
-                      setState(() {
-                        _maxPrice = (value / 50).round() * 50;
-                      });
-                    },
+                    child: Slider(
+                      min: _minPrice.toDouble(),
+                      max: _maxPriceCap.toDouble(),
+                      divisions: (_maxPriceCap - _minPrice) ~/ 50,
+                      value: _maxPrice!.toDouble().clamp(
+                        _minPrice.toDouble(),
+                        _maxPriceCap.toDouble(),
+                      ),
+                      label: '$_maxPrice',
+                      onChanged: (value) {
+                        _updateMaxPrice((value / 50).round() * 50);
+                      },
+                    ),
                   ),
-                ),
               ],
               const SizedBox(height: 8),
               Row(
@@ -717,7 +774,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
-                  TextButton(
+                  ElevatedButton(
                     onPressed: () {
                       Navigator.pop(
                         context,
@@ -731,12 +788,21 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                         ),
                       );
                     },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                     child: const Text(
                       'OK',
-                      style: TextStyle(
-                        color: Colors.deepPurple,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -757,242 +823,95 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
       _maxPrice = null;
       _sortBy = _TutorSort.popularityDesc;
     });
+    _syncPriceField();
   }
 
-  Future<void> _pickSubject() async {
-    final result = await _showStringPicker(
-      title: 'Select subject',
-      options: widget.subjects,
-      selected: _subject,
-    );
-    if (!mounted || result == null) return;
+  void _handlePriceChanged(String value) {
+    if (value.isEmpty) {
+      _updateMaxPrice(null);
+      return;
+    }
 
+    final parsed = int.tryParse(value);
+    if (parsed == null) return;
+
+    _updateMaxPrice(parsed.clamp(1, _maxPriceCap));
+  }
+
+  void _updateMaxPrice(int? value) {
+    final normalized = value?.clamp(1, _maxPriceCap);
     setState(() {
-      _subject = identical(result, _anySelection) ? null : result as String;
+      _maxPrice = normalized;
     });
+    _syncPriceField();
   }
 
-  Future<void> _pickLocation() async {
-    final result = await _showStringPicker(
-      title: 'Select location',
-      options: widget.locations,
-      selected: _location,
-    );
-    if (!mounted || result == null) return;
+  void _syncPriceField() {
+    final text = _maxPrice?.toString() ?? '';
+    if (_priceController.text == text) return;
 
-    setState(() {
-      _location = identical(result, _anySelection) ? null : result as String;
-    });
-  }
-
-  Future<void> _pickProvince() async {
-    final result = await _showStringPicker(
-      title: 'Select province',
-      options: widget.provinces,
-      selected: _province,
-    );
-    if (!mounted || result == null) return;
-
-    setState(() {
-      _province = identical(result, _anySelection) ? null : result as String;
-    });
-  }
-
-  Future<void> _pickZone() async {
-    final result = await _showStringPicker(
-      title: 'Select zone',
-      options: widget.zones,
-      selected: _zone,
-    );
-    if (!mounted || result == null) return;
-
-    setState(() {
-      _zone = identical(result, _anySelection) ? null : result as String;
-    });
-  }
-
-  Future<void> _pickSort() async {
-    final result = await showDialog<_TutorSort>(
-      context: context,
-      builder: (context) {
-        return SimpleDialog(
-          title: const Text('Sort tutors'),
-          children: [
-            for (final sort in _TutorSort.values)
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, sort),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(sort.label)),
-                    if (sort == _sortBy)
-                      const Icon(
-                        Icons.check,
-                        size: 18,
-                        color: Colors.deepPurple,
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted || result == null) return;
-
-    setState(() {
-      _sortBy = result;
-    });
-  }
-
-  Future<void> _pickMaxPrice() async {
-    final result = await showDialog<_PricePickerResult>(
-      context: context,
-      builder: (context) {
-        var enabled = _maxPrice != null;
-        var tempPrice = (_maxPrice ?? 500).toDouble();
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Max price'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SwitchListTile(
-                    value: enabled,
-                    activeThumbColor: Colors.deepPurple,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Enable price limit'),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        enabled = value;
-                      });
-                    },
-                  ),
-                  if (enabled) ...[
-                    Text(
-                      'Not over ${tempPrice.round()} Baht / Hour',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Slider(
-                      min: _minPrice.toDouble(),
-                      max: _maxPriceCap.toDouble(),
-                      divisions: (_maxPriceCap - _minPrice) ~/ 50,
-                      value: tempPrice.clamp(
-                        _minPrice.toDouble(),
-                        _maxPriceCap.toDouble(),
-                      ),
-                      label: '${tempPrice.round()}',
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempPrice = ((value / 50).round() * 50).toDouble();
-                        });
-                      },
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(
-                      context,
-                      _PricePickerResult(
-                        enabled: enabled,
-                        maxPrice: enabled ? tempPrice.round() : null,
-                      ),
-                    );
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (!mounted || result == null) return;
-
-    setState(() {
-      _maxPrice = result.enabled ? result.maxPrice : null;
-    });
-  }
-
-  Future<Object?> _showStringPicker({
-    required String title,
-    required List<String> options,
-    required String? selected,
-  }) async {
-    return showDialog<Object?>(
-      context: context,
-      builder: (context) {
-        return SimpleDialog(
-          title: Text(title),
-          children: [
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, _anySelection),
-              child: Row(
-                children: [
-                  const Expanded(child: Text('Any')),
-                  if (selected == null)
-                    const Icon(Icons.check, size: 18, color: Colors.deepPurple),
-                ],
-              ),
-            ),
-            for (final option in options)
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, option),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(option)),
-                    if (selected == option)
-                      const Icon(
-                        Icons.check,
-                        size: 18,
-                        color: Colors.deepPurple,
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
+    _priceController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 
-  Widget _buildFilterRow({
+  Widget _buildDropdownField<T>({
     required String label,
-    required String value,
-    required VoidCallback onTap,
+    required T? value,
+    required List<DropdownMenuItem<T?>> items,
+    required ValueChanged<T?> onChanged,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '$label  $value',
-                style: const TextStyle(fontSize: 15, color: Colors.black87),
-              ),
-            ),
-            const Icon(Icons.arrow_right, color: Colors.black54, size: 20),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
         ),
-      ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<T?>(
+          initialValue: value,
+          isExpanded: true,
+          items: items,
+          onChanged: onChanged,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.deepPurple.shade200),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(height: 1, thickness: 1, color: Colors.grey.shade300);
+  List<DropdownMenuItem<String?>> _buildStringDropdownItems({
+    required String anyLabel,
+    required List<String> options,
+  }) {
+    return [
+      DropdownMenuItem<String?>(value: null, child: Text(anyLabel)),
+      ...options.map(
+        (option) =>
+            DropdownMenuItem<String?>(value: option, child: Text(option)),
+      ),
+    ];
   }
 
   Widget _buildSectionLabel(String label) {
@@ -1027,13 +946,6 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
       visualDensity: VisualDensity.compact,
     );
   }
-}
-
-class _PricePickerResult {
-  const _PricePickerResult({required this.enabled, required this.maxPrice});
-
-  final bool enabled;
-  final int? maxPrice;
 }
 
 class _TutorItem {
@@ -1084,19 +996,6 @@ class _TutorFilterState {
 enum _TutorSort { popularityDesc, ratingDesc, priceAsc, priceDesc }
 
 extension on _TutorSort {
-  String get label {
-    switch (this) {
-      case _TutorSort.popularityDesc:
-        return 'Most popular';
-      case _TutorSort.ratingDesc:
-        return 'Highest rating';
-      case _TutorSort.priceAsc:
-        return 'Price: low to high';
-      case _TutorSort.priceDesc:
-        return 'Price: high to low';
-    }
-  }
-
   String get shortLabel {
     switch (this) {
       case _TutorSort.popularityDesc:
