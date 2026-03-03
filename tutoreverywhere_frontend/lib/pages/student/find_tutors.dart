@@ -371,7 +371,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                   ? const Center(child: Text('No tutors found'))
                   : ListView.separated(
                       itemCount: tutors.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 16),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final tutor = tutors[index];
                         return _buildVerticalTutorCard(
@@ -404,24 +404,24 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFFFCF9FF),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                radius: 40,
+                radius: 30,
                 backgroundColor: Colors.green.shade200,
-                child: const Icon(Icons.person, size: 45, color: Colors.white),
+                child: const Icon(Icons.person, size: 34, color: Colors.white),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,24 +430,24 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                       tutor.title,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tutor.subject,
-                      style: const TextStyle(
                         fontSize: 15,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
+                    Text(
+                      tutor.subject,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
                           Icons.location_on,
-                          size: 16,
+                          size: 14,
                           color: Colors.red.shade400,
                         ),
                         const SizedBox(width: 4),
@@ -455,25 +455,25 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                           tutor.location,
                           style: const TextStyle(
                             color: Colors.black87,
-                            fontSize: 15,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       '${tutor.zone} • ${tutor.province}',
                       style: const TextStyle(
                         color: Colors.black54,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       tutor.priceLabel,
                       style: const TextStyle(
                         color: Colors.black87,
-                        fontSize: 15,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -561,6 +561,83 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 ],
               ),
               const SizedBox(height: 8),
+              _buildSectionLabel('Quick Search'),
+              const SizedBox(height: 12),
+              _buildSectionLabel('Quick Subject'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChoiceChip(
+                    label: 'Any',
+                    selected: _subject == null,
+                    onSelected: () => setState(() => _subject = null),
+                  ),
+                  for (final subject in widget.subjects.take(3))
+                    _buildChoiceChip(
+                      label: subject,
+                      selected: _subject == subject,
+                      onSelected: () => setState(() => _subject = subject),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildSectionLabel('Quick Province'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChoiceChip(
+                    label: 'Any',
+                    selected: _province == null,
+                    onSelected: () => setState(() => _province = null),
+                  ),
+                  for (final province in widget.provinces.take(3))
+                    _buildChoiceChip(
+                      label: province,
+                      selected: _province == province,
+                      onSelected: () => setState(() => _province = province),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildSectionLabel('Quick Sort'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final sort in _TutorSort.values.take(3))
+                    _buildChoiceChip(
+                      label: sort.shortLabel,
+                      selected: _sortBy == sort,
+                      onSelected: () => setState(() => _sortBy = sort),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildSectionLabel('Quick Price'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChoiceChip(
+                    label: 'No limit',
+                    selected: _maxPrice == null,
+                    onSelected: () => setState(() => _maxPrice = null),
+                  ),
+                  for (final value in const [250, 300, 400])
+                    _buildChoiceChip(
+                      label: '<= $value',
+                      selected: _maxPrice == value,
+                      onSelected: () => setState(() => _maxPrice = value),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
               _buildFilterRow(
                 label: 'Subject',
                 value: _subject ?? 'Any subject',
@@ -599,121 +676,6 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 onTap: _pickLocation,
               ),
               _buildDivider(),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Subject'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChoiceChip(
-                    label: 'Any',
-                    selected: _subject == null,
-                    onSelected: () => setState(() => _subject = null),
-                  ),
-                  for (final subject in widget.subjects)
-                    _buildChoiceChip(
-                      label: subject,
-                      selected: _subject == subject,
-                      onSelected: () => setState(() => _subject = subject),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Province'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChoiceChip(
-                    label: 'Any',
-                    selected: _province == null,
-                    onSelected: () => setState(() => _province = null),
-                  ),
-                  for (final province in widget.provinces)
-                    _buildChoiceChip(
-                      label: province,
-                      selected: _province == province,
-                      onSelected: () => setState(() => _province = province),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Zone'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChoiceChip(
-                    label: 'Any',
-                    selected: _zone == null,
-                    onSelected: () => setState(() => _zone = null),
-                  ),
-                  for (final zone in widget.zones)
-                    _buildChoiceChip(
-                      label: zone,
-                      selected: _zone == zone,
-                      onSelected: () => setState(() => _zone = zone),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Location'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChoiceChip(
-                    label: 'Any',
-                    selected: _location == null,
-                    onSelected: () => setState(() => _location = null),
-                  ),
-                  for (final location in widget.locations)
-                    _buildChoiceChip(
-                      label: location,
-                      selected: _location == location,
-                      onSelected: () => setState(() => _location = location),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Sort'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final sort in _TutorSort.values)
-                    _buildChoiceChip(
-                      label: sort.shortLabel,
-                      selected: _sortBy == sort,
-                      onSelected: () => setState(() => _sortBy = sort),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionLabel('Quick Price'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildChoiceChip(
-                    label: 'No limit',
-                    selected: _maxPrice == null,
-                    onSelected: () => setState(() => _maxPrice = null),
-                  ),
-                  for (final value in const [250, 300, 400, 500, 700])
-                    _buildChoiceChip(
-                      label: '<= $value',
-                      selected: _maxPrice == value,
-                      onSelected: () => setState(() => _maxPrice = value),
-                    ),
-                ],
-              ),
               const SizedBox(height: 8),
               if (_maxPrice != null) ...[
                 Text(
