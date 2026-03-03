@@ -270,7 +270,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(title: const Text('Teacher Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+              appBar: AppBar(title: const Text('Tutor Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
               body: const Center(child: CircularProgressIndicator()),
             );
     }
@@ -281,7 +281,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           ? Center(child: Text('Error: $_errorMessage'))
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(title: const Text('Teacher Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+              appBar: AppBar(title: const Text('Tutor Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
               body: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -432,7 +432,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Teacher Profile', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text('Tutor Profile', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

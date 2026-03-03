@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/profile.dart';
-import 'package:tutoreverywhere_frontend/service/api.dart';
 
 class FindTutorsPage extends StatefulWidget {
   const FindTutorsPage({super.key, this.initialSubjectFilter});
@@ -17,19 +16,16 @@ class FindTutorsPage extends StatefulWidget {
 class _FindTutorsPageState extends State<FindTutorsPage> {
   final TextEditingController _searchController = TextEditingController();
 
-  // API client
   late final Dio _dio;
-  late final RestClient _client;
   static const String _baseUrl = "http://10.0.2.2:3000/";
 
-  // Data state
   List<FindTutors> _tutors = [];
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Filter state
   String? _subjectFilter;
   String? _provinceFilter;
+  String? _zoneFilter;
   String? _locationFilter;
   int? _maxPriceFilter;
   _TutorSort _sortBy = _TutorSort.popularityDesc;
@@ -46,14 +42,14 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     _dio = Dio(
       BaseOptions(
         baseUrl: _baseUrl,
-        contentType: "application/json",
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
         validateStatus: (status) => status != null,
       ),
     );
     _dio.interceptors.add(
       LogInterceptor(requestBody: true, responseBody: true, error: true),
     );
-    _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
   Future<void> _fetchTutors() async {
@@ -63,18 +59,37 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     });
 
     try {
-      final results = await _client.getTutors(
-        subject: _subjectFilter,
-        province: _provinceFilter,
-        location: _locationFilter,
-        maxPrice: _maxPriceFilter?.toString(),
-        name: _searchController.text.trim().isEmpty
-            ? null
-            : _searchController.text.trim(),
-        sortBy: _sortBy.queryValue,
+      final queryParams = <String, dynamic>{
+        'sortby': _sortBy.queryValue,
+        if (_subjectFilter != null) 'subject': _subjectFilter,
+        if (_provinceFilter != null) 'province': _provinceFilter,
+        if (_zoneFilter != null) 'zone': _zoneFilter,
+        if (_locationFilter != null) 'location': _locationFilter,
+        if (_maxPriceFilter != null) 'maxprice': _maxPriceFilter.toString(),
+        if (_searchController.text.trim().isNotEmpty)
+          'name': _searchController.text.trim(),
+      };
+
+      final response = await _dio.get<dynamic>(
+        'tutors',
+        queryParameters: queryParams,
       );
 
       if (!mounted) return;
+
+      final data = response.data;
+      List<FindTutors> results;
+
+      if (data is List) {
+        results = data
+            .map((e) => FindTutors.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (data is Map<String, dynamic>) {
+        results = [FindTutors.fromJson(data)];
+      } else {
+        results = [];
+      }
+
       setState(() {
         _tutors = results;
         _isLoading = false;
@@ -86,6 +101,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
         _isLoading = false;
       });
       debugPrint('Dio Error: ${e.type} - ${e.message}');
+      debugPrint('Response: ${e.response?.data}');
     } catch (e, stackTrace) {
       if (!mounted) return;
       setState(() {
@@ -99,6 +115,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   bool get _hasActiveFilters =>
       _subjectFilter != null ||
       _provinceFilter != null ||
+      _zoneFilter != null ||
       _locationFilter != null ||
       _maxPriceFilter != null;
 
@@ -106,6 +123,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     var count = 0;
     if (_subjectFilter != null) count++;
     if (_provinceFilter != null) count++;
+    if (_zoneFilter != null) count++;
     if (_locationFilter != null) count++;
     if (_maxPriceFilter != null) count++;
     return count;
@@ -121,6 +139,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
           initial: _TutorFilterState(
             subject: _subjectFilter,
             province: _provinceFilter,
+            zone: _zoneFilter,
             location: _locationFilter,
             maxPrice: _maxPriceFilter,
             sortBy: _sortBy,
@@ -134,6 +153,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     setState(() {
       _subjectFilter = result.subject;
       _provinceFilter = result.province;
+      _zoneFilter = result.zone;
       _locationFilter = result.location;
       _maxPriceFilter = result.maxPrice;
       _sortBy = result.sortBy;
@@ -145,6 +165,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     setState(() {
       _subjectFilter = null;
       _provinceFilter = null;
+      _zoneFilter = null;
       _locationFilter = null;
       _maxPriceFilter = null;
       _sortBy = _TutorSort.popularityDesc;
@@ -156,10 +177,11 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     final selectedTab = await Navigator.push<int>(
       context,
       MaterialPageRoute(
-        builder: (context) => TutorProfilePage(userId: tutor.userUuid)
+        builder: (context) => TutorProfilePage(
+          userId: tutor.userUuid,
+        ),
       ),
     );
-
     if (!mounted || selectedTab == null) return;
     Navigator.pop(context, selectedTab);
   }
@@ -171,14 +193,13 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     super.dispose();
   }
 
-  /// Resolves the full profile picture URL using the same logic as StudentProfilePage.
-  ImageProvider? _resolveProfileImage(String profilePicture) {
-    if (profilePicture.isEmpty) return null;
-    final url = profilePicture.contains('default_pfp.png')
+  ImageProvider? _resolveProfileImage(String pic) {
+    if (pic.isEmpty) return null;
+    final url = pic.contains('default_pfp.png')
         ? '${_baseUrl}assets/pfp/default_pfp.png'
-        : profilePicture.startsWith('http')
-            ? profilePicture
-            : '$_baseUrl$profilePicture';
+        : pic.startsWith('http')
+            ? pic
+            : '$_baseUrl$pic';
     return NetworkImage(url);
   }
 
@@ -219,24 +240,16 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                       decoration: InputDecoration(
                         hintText: 'Search for name here',
                         hintStyle: TextStyle(color: Colors.grey.shade600),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.black54,
-                        ),
+                        prefixIcon: const Icon(Icons.search, color: Colors.black54),
                         suffixIcon: IconButton(
-                          icon: const Icon(
-                            Icons.cancel_outlined,
-                            color: Colors.black54,
-                          ),
+                          icon: const Icon(Icons.cancel_outlined, color: Colors.black54),
                           onPressed: () {
                             _searchController.clear();
                             _fetchTutors();
                           },
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
@@ -261,19 +274,15 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.tune,
-                          color: _hasActiveFilters
-                              ? Colors.deepPurple
-                              : Colors.black54,
-                        ),
+                        Icon(Icons.tune,
+                            color: _hasActiveFilters
+                                ? Colors.deepPurple
+                                : Colors.black54),
                         if (_hasActiveFilters) ...[
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.deepPurple,
                               borderRadius: BorderRadius.circular(10),
@@ -281,10 +290,9 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                             child: Text(
                               '$_activeFilterCount',
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -306,6 +314,8 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                       _buildActiveChip('Subject: $_subjectFilter'),
                     if (_provinceFilter != null)
                       _buildActiveChip('Province: $_provinceFilter'),
+                    if (_zoneFilter != null)
+                      _buildActiveChip('Zone: $_zoneFilter'),
                     if (_locationFilter != null)
                       _buildActiveChip('Location: $_locationFilter'),
                     if (_maxPriceFilter != null)
@@ -327,9 +337,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     if (_errorMessage != null) {
       return Center(
@@ -340,18 +348,13 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
             const SizedBox(height: 16),
             Text('Error: $_errorMessage'),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchTutors,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _fetchTutors, child: const Text('Retry')),
           ],
         ),
       );
     }
 
-    if (_tutors.isEmpty) {
-      return const Center(child: Text('No tutors found'));
-    }
+    if (_tutors.isEmpty) return const Center(child: Text('No tutors found'));
 
     return ListView.separated(
       itemCount: _tutors.length,
@@ -381,15 +384,12 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     required VoidCallback onTap,
   }) {
     final fullName = '${tutor.firstname} ${tutor.lastname}';
-    // avgRating is a String from the API (e.g. "4.80")
     final rating = double.tryParse(tutor.avgRating);
     final title = rating != null
         ? '$fullName (${rating.toStringAsFixed(1)} ⭐)'
         : fullName;
 
-    // subjectByPrice: Map<subjectName, pricePerHour>
     final subjects = tutor.subjectByPrice.entries.toList();
-
     final profileImage = _resolveProfileImage(tutor.profilePicture);
 
     return Material(
@@ -420,22 +420,19 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name + rating
                     Text(
                       title,
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.black87,
-                      ),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.black87),
                     ),
-                    // Subject chips with price from subjectByPrice map
                     if (subjects.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
-                        children: subjects.map((entry) {
+                        children: subjects.map((e) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
@@ -446,56 +443,39 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                                   color: Colors.deepPurple.shade100),
                             ),
                             child: Text(
-                              '${entry.key} · ${entry.value} ฿/hr',
+                              '${e.key} · ${e.value} ฿/hr',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.deepPurple.shade800,
-                              ),
+                                  fontSize: 12,
+                                  color: Colors.deepPurple.shade800),
                             ),
                           );
                         }).toList(),
                       ),
                     ],
-                    // Location
                     if (tutor.location != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 14,
-                            color: Colors.red.shade400,
-                          ),
+                          Icon(Icons.location_on,
+                              size: 14, color: Colors.red.shade400),
                           const SizedBox(width: 4),
-                          Text(
-                            tutor.location!,
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 14,
-                            ),
-                          ),
+                          Text(tutor.location!,
+                              style: const TextStyle(
+                                  color: Colors.black87, fontSize: 14)),
                         ],
                       ),
                     ],
-                    // Province
                     if (tutor.province != null) ...[
                       const SizedBox(height: 2),
-                      Text(
-                        tutor.province!,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text(tutor.province!,
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 12)),
                     ],
-                    // Review count
                     const SizedBox(height: 4),
                     Text(
                       '${tutor.reviewCount} review${tutor.reviewCount == "1" ? "" : "s"}',
                       style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 12,
-                      ),
+                          color: Colors.black54, fontSize: 12),
                     ),
                   ],
                 ),
@@ -524,35 +504,97 @@ class _FilterTutorsSheet extends StatefulWidget {
 class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
   late String? _subject = widget.initial.subject;
   late String? _province = widget.initial.province;
+  late String? _zone = widget.initial.zone;
   late String? _location = widget.initial.location;
   late int? _maxPrice = widget.initial.maxPrice;
   late _TutorSort _sortBy = widget.initial.sortBy;
-
-  late final TextEditingController _subjectController;
-  late final TextEditingController _provinceController;
-  late final TextEditingController _locationController;
   late final TextEditingController _priceController;
 
   static const int _minPrice = 100;
   static const int _maxPriceCap = 1000;
 
-  static const _subjectPresets = ['Math', 'Science', 'English', 'Thai'];
-  static const _pricePresets = [250, 300, 400];
+  static const _subjects = ['Math', 'Science', 'English', 'Thai'];
+
+  // Thailand's 6 regions → provinces
+  static const _regionProvinces = <String, List<String>>{
+    'Central': [
+      'Bangkok', 'Ang Thong', 'Chai Nat', 'Kanchanaburi', 'Lop Buri',
+      'Nakhon Nayok', 'Nakhon Pathom', 'Nonthaburi', 'Pathum Thani',
+      'Phra Nakhon Si Ayutthaya', 'Prachin Buri', 'Ratchaburi', 'Samut Prakan',
+      'Samut Sakhon', 'Samut Songkhram', 'Saraburi', 'Sing Buri',
+      'Suphan Buri',
+    ],
+    'Northern': [
+      'Chiang Mai', 'Chiang Rai', 'Kamphaeng Phet', 'Lampang', 'Lamphun',
+      'Mae Hong Son', 'Nan', 'Phayao', 'Phetchabun', 'Phichit', 'Phitsanulok',
+      'Phrae', 'Sukhothai', 'Tak', 'Uthai Thani', 'Uttaradit',
+    ],
+    'Northeastern': [
+      'Amnat Charoen', 'Bueng Kan', 'Buri Ram', 'Chaiyaphum', 'Kalasin',
+      'Khon Kaen', 'Loei', 'Maha Sarakham', 'Mukdahan', 'Nakhon Phanom',
+      'Nakhon Ratchasima', 'Nong Bua Lam Phu', 'Nong Khai', 'Roi Et',
+      'Sa Kaeo', 'Sakon Nakhon', 'Si Sa Ket', 'Surin', 'Ubon Ratchathani',
+      'Udon Thani', 'Yasothon',
+    ],
+    'Eastern': [
+      'Chachoengsao', 'Chanthaburi', 'Chon Buri', 'Rayong', 'Sa Kaeo',
+      'Trat',
+    ],
+    'Western': [
+      'Kanchanaburi', 'Phetchaburi', 'Prachuap Khiri Khan', 'Ratchaburi',
+      'Samut Songkhram', 'Tak',
+    ],
+    'Southern': [
+      'Chumphon', 'Krabi', 'Nakhon Si Thammarat', 'Narathiwat', 'Pattani',
+      'Phangnga', 'Phatthalung', 'Phuket', 'Ranong', 'Satun', 'Songkhla',
+      'Surat Thani', 'Trang', 'Yala',
+    ],
+  };
+
+  // Locations defined per province (extend as needed)
+  static const _provinceLocations = <String, List<String>>{
+    'Bangkok': [
+      'Bang Kapi', 'Bang Khae', 'Bang Khen', 'Bang Kolaem', 'Bang Na',
+      'Bang Rak', 'Bang Sue', 'Bangbon', 'Chatuchak', 'Chom Thong',
+      'Din Daeng', 'Don Mueang', 'Dusit', 'Huai Khwang', 'Khan Na Yao',
+      'Khlong Sam Wa', 'Khlong San', 'Khlong Toei', 'Lak Si', 'Lat Krabang',
+      'Lat Phrao', 'Meen Buri', 'Minburi', 'Nong Chok', 'Nong Khaem',
+      'Pasi Charoen', 'Pathum Wan', 'Phaya Thai', 'Phra Khanong',
+      'Phra Nakhon', 'Pom Prap Sattru Phai', 'Prawet', 'Rat Burana',
+      'Ratchathewi', 'Sai Mai', 'Samphanthawong', 'Saphan Sung', 'Sathon',
+      'Suan Luang', 'Taling Chan', 'Thawi Watthana', 'Thon Buri',
+      'Thung Khru', 'Wang Thonglang', 'Yan Nawa',
+    ],
+    'Nonthaburi': [
+      'Mueang Nonthaburi', 'Bang Bua Thong', 'Bang Kruai', 'Bang Yai',
+      'Pak Kret', 'Sai Noi',
+    ],
+    'Pathum Thani': [
+      'Mueang Pathum Thani', 'Khlong Luang', 'Lam Luk Ka', 'Lat Lum Kaeo',
+      'Rangsit', 'Sam Khok', 'Thanyaburi',
+    ],
+    'Samut Prakan': [
+      'Mueang Samut Prakan', 'Bang Bo', 'Bang Phli', 'Bang Sao Thong',
+      'Pak Nam', 'Phra Pradaeng', 'Phra Samut Chedi',
+    ],
+    'Chiang Mai': [
+      'Mueang Chiang Mai', 'Chiang Dao', 'Doi Saket', 'Fang', 'Hot',
+      'Mae Rim', 'Mae Taeng', 'Samoeng', 'San Kamphaeng', 'San Sai',
+    ],
+    'Chon Buri': [
+      'Mueang Chon Buri', 'Bang Lamung', 'Bo Thong', 'Ko Chan', 'Ko Si Chang',
+      'Pattaya', 'Phan Thong', 'Sattahip', 'Si Racha',
+    ],
+  };
 
   @override
   void initState() {
     super.initState();
-    _subjectController = TextEditingController(text: _subject ?? '');
-    _provinceController = TextEditingController(text: _province ?? '');
-    _locationController = TextEditingController(text: _location ?? '');
     _priceController = TextEditingController(text: _maxPrice?.toString() ?? '');
   }
 
   @override
   void dispose() {
-    _subjectController.dispose();
-    _provinceController.dispose();
-    _locationController.dispose();
     _priceController.dispose();
     super.dispose();
   }
@@ -561,15 +603,26 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
     setState(() {
       _subject = null;
       _province = null;
+      _zone = null;
       _location = null;
       _maxPrice = null;
       _sortBy = _TutorSort.popularityDesc;
     });
-    _subjectController.clear();
-    _provinceController.clear();
-    _locationController.clear();
     _syncPriceField();
   }
+
+  // When zone changes, clear province & location downstream
+  void _onZoneChanged(String? zone) => setState(() {
+        _zone = zone;
+        _province = null;
+        _location = null;
+      });
+
+  // When province changes, clear location downstream
+  void _onProvinceChanged(String? province) => setState(() {
+        _province = province;
+        _location = null;
+      });
 
   void _updateMaxPrice(int? value) {
     setState(() => _maxPrice = value?.clamp(1, _maxPriceCap));
@@ -578,12 +631,11 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
 
   void _syncPriceField() {
     final text = _maxPrice?.toString() ?? '';
-    if (_priceController.text != text) {
-      _priceController.value = TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
-      );
-    }
+    if (_priceController.text == text) return;
+    _priceController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   void _handlePriceChanged(String value) {
@@ -592,12 +644,19 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
       return;
     }
     final parsed = int.tryParse(value);
-    if (parsed != null) _updateMaxPrice(parsed);
+    if (parsed != null) _updateMaxPrice(parsed.clamp(1, _maxPriceCap));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final provincesInZone = _zone != null
+        ? (_regionProvinces[_zone] ?? <String>[])
+        : <String>[];
+    final locationsInProvince = _province != null
+        ? (_provinceLocations[_province] ?? <String>[])
+        : <String>[];
+    final hasLocations = locationsInProvince.isNotEmpty;
 
     return Container(
       decoration: const BoxDecoration(
@@ -608,10 +667,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
         ),
       ),
       padding: EdgeInsets.fromLTRB(
-        20,
-        24,
-        20,
-        20 + MediaQuery.of(context).viewInsets.bottom,
+        20, 24, 20, 20 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SafeArea(
         top: false,
@@ -620,16 +676,16 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Filter Tutors',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87),
                   ),
                   TextButton(
                     onPressed: _resetFilters,
@@ -637,9 +693,12 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
-              // Subject
+              // ── Quick Search ──
+              _buildSectionLabel('Quick Search'),
+              const SizedBox(height: 12),
+
               _buildSectionLabel('Subject'),
               const SizedBox(height: 8),
               Wrap(
@@ -649,55 +708,40 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                   _buildChoiceChip(
                     label: 'Any',
                     selected: _subject == null,
-                    onSelected: () => setState(() {
-                      _subject = null;
-                      _subjectController.clear();
-                    }),
+                    onSelected: () => setState(() => _subject = null),
                   ),
-                  for (final s in _subjectPresets)
+                  for (final s in _subjects.take(3))
                     _buildChoiceChip(
                       label: s,
                       selected: _subject == s,
-                      onSelected: () => setState(() {
-                        _subject = s;
-                        _subjectController.text = s;
-                      }),
+                      onSelected: () => setState(() => _subject = s),
                     ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              _buildSectionLabel('Zone'),
               const SizedBox(height: 8),
-              _buildTextField(
-                controller: _subjectController,
-                hint: 'Or type a subject…',
-                onChanged: (v) => setState(
-                    () => _subject = v.trim().isEmpty ? null : v.trim()),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildChoiceChip(
+                    label: 'Any',
+                    selected: _zone == null,
+                    onSelected: () => _onZoneChanged(null),
+                  ),
+                  for (final z in _regionProvinces.keys.take(3))
+                    _buildChoiceChip(
+                      label: z,
+                      selected: _zone == z,
+                      onSelected: () => _onZoneChanged(z),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
 
-              // Province
-              _buildSectionLabel('Province'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _provinceController,
-                hint: 'e.g. Bangkok',
-                onChanged: (v) => setState(
-                    () => _province = v.trim().isEmpty ? null : v.trim()),
-              ),
-              const SizedBox(height: 16),
-
-              // Location
-              _buildSectionLabel('Location'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _locationController,
-                hint: 'e.g. Chatuchak',
-                onChanged: (v) => setState(
-                    () => _location = v.trim().isEmpty ? null : v.trim()),
-              ),
-              const SizedBox(height: 16),
-
-              // Sort
-              _buildSectionLabel('Sort By'),
+              _buildSectionLabel('Sort'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -713,8 +757,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Price
-              _buildSectionLabel('Max Price'),
+              _buildSectionLabel('Price'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -725,14 +768,75 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                     selected: _maxPrice == null,
                     onSelected: () => _updateMaxPrice(null),
                   ),
-                  for (final value in _pricePresets)
+                  for (final v in const [250, 300, 400])
                     _buildChoiceChip(
-                      label: '<= $value',
-                      selected: _maxPrice == value,
-                      onSelected: () => _updateMaxPrice(value),
+                      label: '<= $v',
+                      selected: _maxPrice == v,
+                      onSelected: () => _updateMaxPrice(v),
                     ),
                 ],
               ),
+
+              const SizedBox(height: 20),
+
+              // ── Filters ──
+              _buildSectionLabel('Filters'),
+              const SizedBox(height: 12),
+
+              // Subject
+              _buildDropdownField<String?>(
+                label: 'Subject',
+                value: _subject,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any subject',
+                  options: _subjects,
+                ),
+                onChanged: (v) => setState(() => _subject = v),
+              ),
+              const SizedBox(height: 12),
+
+              // Zone (region of Thailand)
+              _buildDropdownField<String?>(
+                label: 'Zone (Region)',
+                value: _zone,
+                items: _buildStringDropdownItems(
+                  anyLabel: 'Any zone',
+                  options: _regionProvinces.keys.toList(),
+                ),
+                onChanged: _onZoneChanged,
+              ),
+              const SizedBox(height: 12),
+
+              // Province — only shown after zone is selected
+              if (_zone != null) ...[
+                _buildDropdownField<String?>(
+                  label: 'Province',
+                  value: _province,
+                  items: _buildStringDropdownItems(
+                    anyLabel: 'Any province',
+                    options: provincesInZone,
+                  ),
+                  onChanged: _onProvinceChanged,
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Location — shown when province has known locations
+              if (_province != null && hasLocations) ...[
+                _buildDropdownField<String?>(
+                  label: 'Location',
+                  value: _location,
+                  items: _buildStringDropdownItems(
+                    anyLabel: 'Any location',
+                    options: locationsInProvince,
+                  ),
+                  onChanged: (v) => setState(() => _location = v),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Price limit
+              _buildSectionLabel('Price Limit'),
               const SizedBox(height: 8),
               SwitchListTile(
                 value: _maxPrice != null,
@@ -754,27 +858,24 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                   labelText: 'Custom max price',
                   hintText: 'Enter price in Baht',
                   filled: true,
-                  fillColor:
-                      _maxPrice != null ? Colors.white : Colors.grey.shade100,
+                  fillColor: _maxPrice != null
+                      ? Colors.white
+                      : Colors.grey.shade100,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                      horizontal: 16, vertical: 14),
                 ),
                 onChanged: _handlePriceChanged,
               ),
+              const SizedBox(height: 8),
               if (_maxPrice != null) ...[
-                const SizedBox(height: 8),
                 Text(
-                  'Cap: $_maxPrice Baht / Hour',
+                  'Custom price cap: $_maxPrice Baht / Hour',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                      fontWeight: FontWeight.w600, color: Colors.black87),
                 ),
                 if (_maxPrice! >= _minPrice)
                   SliderTheme(
@@ -788,17 +889,16 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                       max: _maxPriceCap.toDouble(),
                       divisions: (_maxPriceCap - _minPrice) ~/ 50,
                       value: _maxPrice!.toDouble().clamp(
-                            _minPrice.toDouble(),
-                            _maxPriceCap.toDouble(),
-                          ),
+                            _minPrice.toDouble(), _maxPriceCap.toDouble()),
                       label: '$_maxPrice',
                       onChanged: (value) =>
                           _updateMaxPrice((value / 50).round() * 50),
                     ),
                   ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
 
+              // Actions
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -813,6 +913,7 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                       _TutorFilterState(
                         subject: _subject,
                         province: _province,
+                        zone: _zone,
                         location: _location,
                         maxPrice: _maxPrice,
                         sortBy: _sortBy,
@@ -823,17 +924,12 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
+                          horizontal: 18, vertical: 10),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text('OK',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -847,36 +943,59 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
   Widget _buildSectionLabel(String label) => Text(
         label,
         style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
+            fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
       );
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required ValueChanged<String> onChanged,
+  Widget _buildDropdownField<T>({
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T?>> items,
+    required ValueChanged<T?> onChanged,
   }) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<T?>(
+          value: value,
+          isExpanded: true,
+          items: items,
+          onChanged: onChanged,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.deepPurple.shade200),
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.deepPurple.shade200),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
+      ],
     );
+  }
+
+  List<DropdownMenuItem<String?>> _buildStringDropdownItems({
+    required String anyLabel,
+    required List<String> options,
+  }) {
+    return [
+      DropdownMenuItem<String?>(value: null, child: Text(anyLabel)),
+      ...options.map(
+        (o) => DropdownMenuItem<String?>(value: o, child: Text(o)),
+      ),
+    ];
   }
 
   Widget _buildChoiceChip({
@@ -910,6 +1029,7 @@ class _TutorFilterState {
   const _TutorFilterState({
     required this.subject,
     required this.province,
+    required this.zone,
     required this.location,
     required this.maxPrice,
     required this.sortBy,
@@ -917,6 +1037,7 @@ class _TutorFilterState {
 
   final String? subject;
   final String? province;
+  final String? zone;
   final String? location;
   final int? maxPrice;
   final _TutorSort sortBy;
@@ -927,28 +1048,19 @@ enum _TutorSort { popularityDesc, ratingDesc, priceAsc, priceDesc }
 extension _TutorSortExt on _TutorSort {
   String get shortLabel {
     switch (this) {
-      case _TutorSort.popularityDesc:
-        return 'Popular';
-      case _TutorSort.ratingDesc:
-        return 'Top Rated';
-      case _TutorSort.priceAsc:
-        return 'Low Price';
-      case _TutorSort.priceDesc:
-        return 'High Price';
+      case _TutorSort.popularityDesc: return 'Popular';
+      case _TutorSort.ratingDesc:     return 'Top Rated';
+      case _TutorSort.priceAsc:       return 'Low Price';
+      case _TutorSort.priceDesc:      return 'High Price';
     }
   }
 
-  /// Maps to the backend's expected `sortby` query values.
   String get queryValue {
     switch (this) {
-      case _TutorSort.popularityDesc:
-        return 'popular';
-      case _TutorSort.ratingDesc:
-        return 'toprated';
-      case _TutorSort.priceAsc:
-        return 'lowprice';
-      case _TutorSort.priceDesc:
-        return 'maxprice';
+      case _TutorSort.popularityDesc: return 'popular';
+      case _TutorSort.ratingDesc:     return 'toprated';
+      case _TutorSort.priceAsc:       return 'lowprice';
+      case _TutorSort.priceDesc:      return 'maxprice';
     }
   }
 }
