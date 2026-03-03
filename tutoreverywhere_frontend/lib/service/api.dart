@@ -3,6 +3,7 @@ import 'package:retrofit/retrofit.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
+import 'package:tutoreverywhere_frontend/models/tutors/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/subjects.dart';
 import '../models/jwt.dart';
 import '../models/auth.dart';
@@ -28,6 +29,17 @@ abstract class RestClient {
   Future<HttpResponse<void>> registerTutor(@Body() RegisterTutor tutor);
 
   // Tutors
+
+  @GET("/tutors")
+  Future<List<FindTutors>> getTutors({
+    @Query("subject") String? subject,
+    @Query("province") String? province,
+    @Query("location") String? location,
+    @Query("maxprice") String? maxPrice,
+    @Query("name") String? name,
+    @Query("sortby") String? sortBy,
+  });
+
   @GET("/tutors/profile/{userId}")
   Future<TutorData> getTutorDataById(@Path("userId") String userId);
 

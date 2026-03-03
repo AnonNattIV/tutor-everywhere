@@ -1,11 +1,30 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData } from "../controllers/tutors.ts";
+import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
+import formatUserSubjects from "../helpers/formatTutorSubjects.ts";
 
 const tutorService = express.Router();
 
 tutorService.use(bodyParser.json());
+
+tutorService.get("/", async (req, res) => {
+  const query = req.query;
+  const subject = query.subject?.toString();
+  const province = query.province?.toString();
+  const location = query.location?.toString();
+  const maxPrice = query.maxprice?.toString();
+  const name = query.name?.toString();
+  const sortBy = query.sortby?.toString();
+  try {
+    const tutors = await findTutor(subject, province, location, maxPrice, name, sortBy);
+    const formattedTutors = formatUserSubjects(tutors);
+    res.status(200).json(formattedTutors);
+  } catch (err) {
+    res.status(500).json({message: "Error find tutor" });
+  }
+})
+
 tutorService.get("/profile/:userId", async (req, res) => {
   const params = req.params;
   const userId = params.userId;

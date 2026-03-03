@@ -123,6 +123,50 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<List<FindTutors>> getTutors({
+    String? subject,
+    String? province,
+    String? location,
+    String? maxPrice,
+    String? name,
+    String? sortBy,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'subject': subject,
+      r'province': province,
+      r'location': location,
+      r'maxprice': maxPrice,
+      r'name': name,
+      r'sortby': sortBy,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<List<FindTutors>>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<FindTutors> _value;
+    try {
+      _value = _result.data!
+          .map((dynamic i) => FindTutors.fromJson(i as Map<String, dynamic>))
+          .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<TutorData> getTutorDataById(String userId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

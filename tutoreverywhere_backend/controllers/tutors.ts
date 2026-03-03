@@ -1,4 +1,6 @@
 import sql from "../db/db.ts";
+import "../enums/tutorSortBy.ts"
+import TutorSortBy from "../enums/tutorSortBy.ts";
 
 async function viewTutorData(userId: string) {
   try {
@@ -94,4 +96,65 @@ async function deleteTutorSubject(userId : string, subject: string) {
   }
 }
 
-export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject }
+async function findTutor(subject?: string, province?: string, location?: string, maxPrice?: string, name?: string, sortBy?: string) {
+  try {
+    let orderByClause = sql``
+
+    if (sortBy) {
+      switch (sortBy) {
+        case TutorSortBy.Popular:
+          orderByClause = sql`ORDER BY review_count DESC`;
+          break;
+        case TutorSortBy.TopRated:
+          orderByClause = sql`ORDER BY avg_rating DESC`;
+          break;
+        case TutorSortBy.LowPrice:
+          orderByClause = sql`ORDER BY ts.price ASC`;
+          break;
+        case TutorSortBy.MaxPrice:
+          orderByClause = sql`ORDER BY ts.price DESC`;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const tutors = await sql`
+      select 
+        t.user_uuid, 
+        t.firstname, 
+        t.lastname, 
+        t.dateofbirth, 
+        t.gender, 
+        t.profile_picture, 
+        t.bio, 
+        t.verified, 
+        t.province, 
+        t.location,
+        ts.subject,
+        ts.price,
+        round(avg(r.rating)::numeric, 2) as avg_rating,
+        count(r.rating) as review_count
+      from tutors t
+      join tutor_subjects ts on t.user_uuid = ts.tutor_uuid
+      join reviews r on t.user_uuid = r.reviewee
+      where true
+        ${subject ? sql` and ts.subject = ${subject}` : sql``}
+        ${province ? sql` and t.province = ${province}` : sql``}
+        ${location ? sql` and t.location = ${location}` : sql``}
+        ${maxPrice ? sql` and ts.price <= ${maxPrice}` : sql``}
+        ${name ? sql` and (t.firstname ILIKE ${`%${name}%`} OR t.lastname ILIKE ${`%${name}%`})` : sql``}
+      group by
+        t.user_uuid, t.firstname, t.lastname, t.dateofbirth, t.gender,
+        t.profile_picture, t.bio, t.verified, t.preferred_place,
+        t.province, t.location, ts.price, ts.subject
+      ${orderByClause}
+      `
+    return tutors
+  } catch (err) {
+    console.error("Find Tutor Error");
+    throw err;
+  }
+}
+
+export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor }
