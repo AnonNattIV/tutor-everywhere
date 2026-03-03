@@ -3,7 +3,7 @@ import sql from "../db/db.ts";
 async function viewTutorData(userId: string) {
   try {
     const tutor = await sql`
-      select user_uuid, firstname, lastname, dateofbirth, gender, profile_picture, bio, verified, preferred_place
+      select user_uuid, firstname, lastname, dateofbirth, gender, profile_picture, bio, verified, preferred_place, province, location
       from tutors
       where user_uuid = ${userId}
     `;
