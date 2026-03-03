@@ -16,11 +16,19 @@ class StudentHomePage extends StatefulWidget {
 
 class _StudentHomePageState extends State<StudentHomePage> {
   int currentPageIndex = 0;
+  static const List<String> _featuredSubjects = [
+    'English',
+    'Science',
+    'Math',
+    'Thai',
+  ];
 
-  Future<void> _openFindTutors() async {
+  Future<void> _openFindTutors({String? subject}) async {
     final selectedTab = await Navigator.push<int>(
       context,
-      MaterialPageRoute(builder: (context) => const FindTutorsPage()),
+      MaterialPageRoute(
+        builder: (context) => FindTutorsPage(initialSubjectFilter: subject),
+      ),
     );
 
     if (!mounted || selectedTab == null) return;
@@ -60,8 +68,12 @@ class _StudentHomePageState extends State<StudentHomePage> {
             TextButton(
               onPressed: () {
                 context.read<AuthProvider>().logout();
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
-                print("User Logged Out");
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => HomePage()),
+                  (route) => false,
+                );
+                debugPrint("User Logged Out");
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: Text("Logout"),
@@ -77,7 +89,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
       case 'settings':
         // Navigate to Settings Page
         // Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage()));
-        print("Navigate to Settings");
+        debugPrint("Navigate to Settings");
         break;
       case 'logout':
         // Show confirmation dialog before logging out
@@ -88,11 +100,14 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
   @override
   Widget build(BuildContext context) {
-
     final pages = <Widget>[
       _buildHomeTab(),
       const ChatPage(),
-      StudentProfilePage(embedded: true, userId: context.read<AuthProvider>().userId!, showEmbeddedAppBar: false,),
+      StudentProfilePage(
+        embedded: true,
+        userId: context.read<AuthProvider>().userId!,
+        showEmbeddedAppBar: false,
+      ),
     ];
 
     return Scaffold(
@@ -160,7 +175,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       SizedBox(width: 12),
                       Text("Settings"),
                     ],
-                  )
+                  ),
                 ),
 
                 PopupMenuItem<String>(
@@ -174,7 +189,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
           backgroundColor: Colors.white,
           elevation: 0,
@@ -203,7 +218,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       SizedBox(width: 12),
                       Text("Settings"),
                     ],
-                  )
+                  ),
                 ),
 
                 PopupMenuItem<String>(
@@ -217,7 +232,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -250,7 +265,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       SizedBox(width: 12),
                       Text("Settings"),
                     ],
-                  )
+                  ),
                 ),
 
                 PopupMenuItem<String>(
@@ -264,7 +279,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   ),
                 ),
               ],
-            )
+            ),
           ],
           backgroundColor: Colors.white,
           elevation: 0,
@@ -299,14 +314,12 @@ class _StudentHomePageState extends State<StudentHomePage> {
               ),
             ),
             const SizedBox(height: 24),
-            _buildSubjectHeader('English'),
-            const SizedBox(height: 12),
-            _buildHorizontalCardList(),
-            const SizedBox(height: 30),
-            _buildSubjectHeader('Science'),
-            const SizedBox(height: 12),
-            _buildHorizontalCardList(),
-            const SizedBox(height: 30),
+            for (final subject in _featuredSubjects) ...[
+              _buildSubjectHeader(subject),
+              const SizedBox(height: 12),
+              _buildHorizontalCardList(),
+              const SizedBox(height: 30),
+            ],
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -331,23 +344,33 @@ class _StudentHomePageState extends State<StudentHomePage> {
             title,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          Row(
-            children: [
-              const Text(
-                'View all',
-                style: TextStyle(
-                  color: Colors.lightBlue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () => _openFindTutors(subject: title),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  children: [
+                    const Text(
+                      'View all',
+                      style: TextStyle(
+                        color: Colors.lightBlue,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.lightBlue.shade400,
+                      size: 18,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward,
-                color: Colors.lightBlue.shade400,
-                size: 18,
-              ),
-            ],
+            ),
           ),
         ],
       ),

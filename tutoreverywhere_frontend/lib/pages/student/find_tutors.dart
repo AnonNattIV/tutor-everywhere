@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:tutoreverywhere_frontend/pages/student/teacher_profile.dart';
 
 class FindTutorsPage extends StatefulWidget {
-  const FindTutorsPage({super.key});
+  const FindTutorsPage({super.key, this.initialSubjectFilter});
+
+  final String? initialSubjectFilter;
 
   @override
   State<FindTutorsPage> createState() => _FindTutorsPageState();
@@ -81,6 +83,18 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   String? _locationFilter;
   int? _maxPriceFilter;
   _TutorSort _sortBy = _TutorSort.popularityDesc;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialSubject = widget.initialSubjectFilter;
+    if (initialSubject == null) return;
+
+    final hasMatchingSubject = _tutors.any(
+      (tutor) => tutor.subject == initialSubject,
+    );
+    _subjectFilter = hasMatchingSubject ? initialSubject : null;
+  }
 
   String get _query => _searchController.text.trim().toLowerCase();
 
