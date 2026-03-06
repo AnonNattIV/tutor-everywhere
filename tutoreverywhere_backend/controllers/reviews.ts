@@ -1,13 +1,14 @@
 import sql from "../db/db.ts";
 
-async function addReview(reviewerUserId: string, revieweeUserId: string, rating: number, subject: string) {
+async function addReview(reviewerUserId: string, revieweeUserId: string, rating: number, subject: string, comment: string) {
   try {
+    console.log(reviewerUserId, revieweeUserId, rating, subject, comment);
     await sql`
-      insert into reviews (reviewer, reviewee, rating, subject)
-      values (${reviewerUserId}, ${revieweeUserId}, ${rating}, ${subject})
+      insert into reviews (reviewer, reviewee, rating, subject, comment)
+      values (${reviewerUserId}, ${revieweeUserId}, ${rating}, ${subject}, ${comment})
     `
   } catch (err) {
-    console.error("Add Review Error")
+    console.error("Add Review Error");
     throw err;
   }
 }

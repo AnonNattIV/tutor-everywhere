@@ -22,11 +22,13 @@ reviewService.post("/", verifyToken, async (req, res) => {
     const authData = req.body.authData;
     const reviewerRole = authData.role;
     const reviewerUserId = authData.userId;
-    const revieweeUserId = req.body.revieweeUserId;
+    const revieweeUserId = req.body.reviewee;
     const rating = req.body.rating;
+    const comment = req.body.comment;
     const subject = req.body.subject;
+
     if (reviewerRole != "student") throw new Error(`This user ${reviewerUserId} is not a student`);
-    await addReview(reviewerUserId, revieweeUserId, rating, subject);
+    await addReview(reviewerUserId, revieweeUserId, rating, subject, comment);
     res.status(200).json({ message: "Sucessfully added review" })
   } catch {
     res.status(500).json({ error: "Review Service Error" });

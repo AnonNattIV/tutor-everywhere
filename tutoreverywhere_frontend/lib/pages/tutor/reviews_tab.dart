@@ -32,6 +32,14 @@ class _ReviewsTabState extends State<ReviewsTab> {
   late final RestClient _client;
   static const String _baseUrl = AppConstants.baseUrl;
 
+  // Predefined subjects for dropdown
+  static const List<String> _availableSubjects = [
+    'English',
+    'Science',
+    'Math',
+    'Thai',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +88,178 @@ class _ReviewsTabState extends State<ReviewsTab> {
     }
   }
 
+  /// Show dialog to submit a new review
+  void _showReviewDialog() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Check authentication
+    if (authProvider.token == null || authProvider.token!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to leave a review')),
+      );
+      return;
+    }
+
+    // Form controllers and state
+    int selectedRating = 5;
+    String? selectedSubject;
+    final commentController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Leave a Review'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Rating
+                    const Text('Rating', style: TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(5, (index) {
+                        final starValue = index + 1;
+                        return GestureDetector(
+                          onTap: () => setDialogState(() => selectedRating = starValue),
+                          child: Icon(
+                            index < selectedRating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Subject Dropdown
+                    DropdownButtonFormField<String>(
+                      value: selectedSubject,
+                      decoration: const InputDecoration(
+                        labelText: 'Subject Taught',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      ),
+                      items: _availableSubjects.map((subject) {
+                        return DropdownMenuItem(value: subject, child: Text(subject));
+                      }).toList(),
+                      onChanged: (value) => setDialogState(() => selectedSubject = value),
+                      validator: (value) => value == null ? 'Please select a subject' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Comment
+                    TextFormField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Comment (Optional)',
+                        hintText: 'Share your experience...',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value != null && value.length > 500) {
+                          return 'Max 500 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      setDialogState(() => isSubmitting = true);
+
+                      try {
+                        final newReview = Review(
+                          reviewer: authProvider.userId ?? '',
+                          reviewee: widget.tutorId,
+                          rating: selectedRating,
+                          reviewDate: DateTime.now(),
+                          subject: selectedSubject!,
+                          comment: commentController.text.trim().isNotEmpty
+                              ? commentController.text.trim()
+                              : null,
+                          // Backend should populate these from JWT
+                          reviewerFirstname: '',
+                          reviewerLastname: '',
+                          reviewerGender: '',
+                          reviewerProfilePicture: '',
+                          reviewerVerified: false,
+                          revieweeFirstname: '',
+                          revieweeLastname: '',
+                          revieweeGender: '',
+                          revieweeProfilePicture: '',
+                          revieweeVerified: false,
+                        );
+
+                        await _client.addReview(authProvider.token!, newReview);
+
+                        if (!mounted) return;
+
+                        // Success feedback
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Review submitted!')),
+                        );
+                        
+                        // Refresh reviews list
+                        await _fetchReviews();
+                      } on DioException catch (e) {
+                        if (!mounted) return;
+                        final errorMsg = e.response?.data['message'] ?? e.message ?? 'Failed to submit';
+                        setDialogState(() => isSubmitting = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        setDialogState(() => isSubmitting = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                    )
+                  : const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Navigate to student profile page
   void _navigateToStudentProfile(String studentId) {
     Navigator.push(
@@ -97,14 +277,18 @@ class _ReviewsTabState extends State<ReviewsTab> {
     return DateFormat('MMM dd, yyyy').format(date);
   }
 
-  Widget _buildRatingStars(int rating) {
+  Widget _buildRatingStars(int rating, {bool interactive = false, Function(int)? onRatingChange}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
-        return Icon(
-          index < rating ? Icons.star : Icons.star_border,
-          color: Colors.amber,
-          size: 18,
+        final starValue = index + 1;
+        return GestureDetector(
+          onTap: interactive && onRatingChange != null ? () => onRatingChange(starValue) : null,
+          child: Icon(
+            index < rating ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+            size: interactive ? 32 : 18,
+          ),
         );
       }),
     );
@@ -134,7 +318,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
 
   Widget _buildReviewCard(Review review) {
     final reviewerImage = _getProfileImage(review.reviewerProfilePicture);
-    final isClickable = review.reviewer.isNotEmpty; // Only navigate if we have a valid ID
+    final isClickable = review.reviewer.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -145,11 +329,9 @@ class _ReviewsTabState extends State<ReviewsTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // === Header: Reviewer + Rating ===
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 👇 Clickable Avatar
                 GestureDetector(
                   onTap: isClickable ? () => _navigateToStudentProfile(review.reviewer) : null,
                   child: CircleAvatar(
@@ -166,8 +348,6 @@ class _ReviewsTabState extends State<ReviewsTab> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                
-                // 👇 Clickable Name + Verified + Date
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,15 +381,10 @@ class _ReviewsTabState extends State<ReviewsTab> {
                     ],
                   ),
                 ),
-                
-                // Stars (not clickable)
                 _buildRatingStars(review.rating),
               ],
             ),
-            
             const SizedBox(height: 12),
-            
-            // === Subject Chip ===
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -226,8 +401,6 @@ class _ReviewsTabState extends State<ReviewsTab> {
                 ),
               ),
             ),
-            
-            // === Comment (optional) ===
             if (review.comment != null && review.comment!.trim().isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
@@ -243,13 +416,48 @@ class _ReviewsTabState extends State<ReviewsTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Loading
+    final authProvider = context.watch<AuthProvider>();
+    final isOwner = authProvider.userId == widget.tutorId;
+
+    return Column(
+      children: [
+        // "Write a Review" button - only show for authenticated students viewing other tutors
+        if (!isOwner && authProvider.token != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _showReviewDialog,
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Write a Review'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // Reviews list section
+        Expanded(
+          child: _buildReviewsList(),
+        ),
+      ],
+    );
+  }
+
+  /// Build the reviews list with loading/error/empty states
+  Widget _buildReviewsList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Error
-    if (_errorMessage != null) {
+    if (_errorMessage != null && _reviews.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -279,7 +487,6 @@ class _ReviewsTabState extends State<ReviewsTab> {
       );
     }
 
-    // Empty
     if (_reviews.isEmpty) {
       return Center(
         child: Column(
@@ -293,7 +500,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Reviews will appear here once students start rating',
+              'Be the first to leave a review!',
               style: TextStyle(fontSize: 13, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
@@ -302,7 +509,6 @@ class _ReviewsTabState extends State<ReviewsTab> {
       );
     }
 
-    // List
     return RefreshIndicator(
       onRefresh: _fetchReviews,
       child: ListView.builder(
