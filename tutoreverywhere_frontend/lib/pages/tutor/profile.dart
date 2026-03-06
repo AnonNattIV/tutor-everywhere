@@ -1,4 +1,3 @@
-// lib/pages/tutor/profile.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,6 +31,7 @@ class TutorProfilePage extends StatefulWidget {
 class _TutorProfilePageState extends State<TutorProfilePage> {
   final ImagePicker _picker = ImagePicker();
   File? _image;
+  bool _isUploadingImage = false; // Add loading state for image upload
 
   // Bio state
   String _bio = '';
@@ -112,7 +112,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     }
   }
 
-    // Location editing
+  // Location editing
   void _startLocationEdit() {
     // Initialize with current values
     _selectedProvince = _province;
@@ -264,17 +264,89 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   String? _getProfilePictureUrl() {
     final picture = _tutor?.profilePicture;
     if (picture == null || picture.isEmpty) return null;
+
+    // Special case: default profile picture needs assets path prefix
     if (picture.contains('default_pfp.png')) {
       return '${_baseUrl}assets/pfp/default_pfp.png';
     }
-    return picture.startsWith('http') ? picture : '$_baseUrl$picture';
+
+    // Return absolute URL if already full, otherwise prepend base URL
+    return picture.startsWith('http') ? picture : _baseUrl + picture;
   }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source, imageQuality: 80, maxWidth: 1024);
     if (pickedFile == null) return;
-    setState(() => _image = File(pickedFile.path));
-    // TODO: Upload to server
+    
+    setState(() {
+      _image = File(pickedFile.path);
+      _isUploadingImage = true; // Show loading indicator
+    });
+    
+    // Upload image to server
+    await _uploadProfilePicture(File(pickedFile.path));
+  }
+
+  // New method to upload profile picture using Retrofit
+  Future<void> _uploadProfilePicture(File imageFile) async {
+    try {
+      final token = context.read<AuthProvider>().token;
+      
+      if (token == null) {
+        throw Exception('No authentication token found');
+      }
+
+      // Call the Retrofit API endpoint
+      await _client.uploadTutorProfilePicture(
+        token ,
+        imageFile,
+      );
+
+      // Refresh tutor data to get updated profile picture URL
+      await _fetchTutorData();
+
+      if (!mounted) return;
+      
+      setState(() {
+        _isUploadingImage = false;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully')),
+      );
+
+    } on DioException catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+        // Revert to previous image if upload failed
+        _image = null;
+      });
+
+      String errorMessage = 'Failed to upload image';
+      if (e.response?.data != null) {
+        errorMessage = e.response?.data['message'] ?? errorMessage;
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+      );
+      
+      debugPrint('Upload error: ${e.message}');
+    } catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+        _image = null;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+      );
+      
+      debugPrint('Unexpected error: $e');
+    }
   }
 
   void _showImageSourceActionSheet() {
@@ -494,12 +566,14 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: isOwner ? _showImageSourceActionSheet : null,
+                  onTap: (isOwner && !_isUploadingImage) ? _showImageSourceActionSheet : null,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
                     backgroundImage: profileImage,
-                    child: profileImage == null ? const Icon(Icons.person, size: 70, color: Colors.deepPurple) : null,
+                    child: profileImage == null 
+                        ? const Icon(Icons.person, size: 70, color: Colors.deepPurple) 
+                        : null,
                   ),
                 ),
                 if (isOwner)
@@ -507,15 +581,24 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: _showImageSourceActionSheet,
+                      onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.deepPurple,
+                          color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        child: _isUploadingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                       ),
                     ),
                   ),

@@ -261,6 +261,38 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<void> uploadTutorProfilePicture(
+    String jwtToken,
+    File profilePicture,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    _data.files.add(
+      MapEntry(
+        'profilePicture',
+        MultipartFile.fromFileSync(
+          profilePicture.path,
+          filename: profilePicture.path.split(Platform.pathSeparator).last,
+        ),
+      ),
+    );
+    final _options = _setStreamType<void>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/profile-picture',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(String tutorId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -396,6 +428,38 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/students/bio',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> uploadStudentProfilePicture(
+    String jwtToken,
+    File profilePicture,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    _data.files.add(
+      MapEntry(
+        'profilePicture',
+        MultipartFile.fromFileSync(
+          profilePicture.path,
+          filename: profilePicture.path.split(Platform.pathSeparator).last,
+        ),
+      ),
+    );
+    final _options = _setStreamType<void>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/students/profile-picture',
             queryParameters: queryParameters,
             data: _data,
           )

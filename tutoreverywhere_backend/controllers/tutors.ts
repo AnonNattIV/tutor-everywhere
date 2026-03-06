@@ -17,6 +17,19 @@ async function viewTutorData(userId: string) {
   }
 }
 
+async function updateTutorProfilePicture(userId: string, profilePicturePath: string) {
+  try {
+    await sql`
+      update tutors
+      set profile_picture = ${profilePicturePath}
+      where user_uuid = ${userId}
+    `
+  } catch (err) {
+    console.error("Update Tutor Profile Picture Error");
+    throw err;
+  }
+}
+
 async function updateTutorBio(userId: string, bio: string) {
   try {
     await sql`
@@ -170,4 +183,5 @@ async function findTutor(subject?: string, province?: string, location?: string,
   }
 }
 
-export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation }
+export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects,
+  addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation, updateTutorProfilePicture }

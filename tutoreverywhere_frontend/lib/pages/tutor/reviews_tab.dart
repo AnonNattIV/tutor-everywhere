@@ -320,7 +320,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
     if (pictureUrl == null || pictureUrl.isEmpty) return null;
     if (pictureUrl.contains('default_pfp.png')) return null;
     if (pictureUrl.startsWith('http')) return NetworkImage(pictureUrl);
-    return NetworkImage('$_baseUrl$pictureUrl');
+    return NetworkImage(_baseUrl + 'assets' + pictureUrl);
   }
 
   Widget _buildReviewCard(Review review) {

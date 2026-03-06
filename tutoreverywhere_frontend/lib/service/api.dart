@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
@@ -53,6 +55,9 @@ abstract class RestClient {
   @PATCH("/tutors/location")
   Future<void> setTutorLocation(@Header("Authorization") String jwtToken, @Field("province") province, @Field("location") location);
 
+  @PATCH("/tutors/profile-picture")
+  Future<void> uploadTutorProfilePicture(@Header("Authorization") String jwtToken, @Part(name: "profilePicture") File profilePicture);
+
   // Tutors: Subjects
   @GET("/tutors/subjects/{userId}")
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);
@@ -72,6 +77,9 @@ abstract class RestClient {
 
   @POST("/students/bio")
   Future<void> setStudentBio(@Header("Authorization") String jwtToken, @Field("bio") String bio );
+
+  @PATCH("/students/profile-picture")
+  Future<void> uploadStudentProfilePicture(@Header("Authorization") String jwtToken, @Part(name: "profilePicture") File profilePicture);
 
   // Reviews
 

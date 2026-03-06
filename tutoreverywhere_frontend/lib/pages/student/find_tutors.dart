@@ -196,11 +196,14 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
 
   ImageProvider? _resolveProfileImage(String pic) {
     if (pic.isEmpty) return null;
-    final url = pic.contains('default_pfp.png')
-        ? '${_baseUrl}assets/pfp/default_pfp.png'
-        : pic.startsWith('http')
-            ? pic
-            : '$_baseUrl$pic';
+
+    // Special case: default profile picture needs assets path prefix
+    if (pic.contains('default_pfp.png')) {
+      return NetworkImage('${_baseUrl}assets/pfp/default_pfp.png');
+    }
+
+    // Return absolute URL if already full, otherwise prepend base URL
+    final url = pic.startsWith('http') ? pic : _baseUrl + 'assets' + pic;
     return NetworkImage(url);
   }
 

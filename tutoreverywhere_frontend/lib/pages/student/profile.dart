@@ -31,6 +31,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   String _bio = '';
   final TextEditingController _bioController = TextEditingController();
   bool _isEditingBio = false;
+  bool _isUploadingImage = false; // Add loading state for image upload
 
   // Student data state
   StudentData? _student;
@@ -54,7 +55,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       BaseOptions(
         baseUrl: _baseUrl,
         contentType: "application/json",
-        validateStatus: (status) => status != null,
+        validateStatus: (status) => status != null && status >= 200 && status < 300,
       ),
     );
 
@@ -107,7 +108,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     }
 
     // Return absolute URL if already full, otherwise prepend base URL
-    return picture.startsWith('http') ? picture : '$_baseUrl$picture';
+    return picture.startsWith('http') ? picture : _baseUrl + picture;
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -121,9 +122,73 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
     setState(() {
       _image = File(pickedFile.path);
+      _isUploadingImage = true; // Show loading indicator
     });
 
-    // TODO: Upload image to server and update student profile via API
+    // Upload image to server using Retrofit
+    await _uploadProfilePicture(File(pickedFile.path));
+  }
+
+  // New method to upload profile picture using Retrofit
+  Future<void> _uploadProfilePicture(File imageFile) async {
+    try {
+      final token = context.read<AuthProvider>().token;
+      
+      if (token == null) {
+        throw Exception('No authentication token found');
+      }
+
+      // Call the Retrofit API endpoint
+      await _client.uploadStudentProfilePicture(
+        token,
+        imageFile,
+      );
+
+      // Refresh student data to get updated profile picture URL
+      await _fetchStudentData();
+
+      if (!mounted) return;
+      
+      setState(() {
+        _isUploadingImage = false;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully')),
+      );
+
+    } on DioException catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+        // Revert to previous image if upload failed
+        _image = null;
+      });
+
+      String errorMessage = 'Failed to upload image';
+      if (e.response?.data != null) {
+        errorMessage = e.response?.data['message'] ?? errorMessage;
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+      );
+      
+      debugPrint('Upload error: ${e.message}');
+    } catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+        _image = null;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+      );
+      
+      debugPrint('Unexpected error: $e');
+    }
   }
 
   void _showImageSourceActionSheet() {
@@ -326,7 +391,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: _showImageSourceActionSheet,
+                  onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
@@ -344,19 +409,28 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   bottom: 0,
                   right: 0,
                   child: GestureDetector(
-                    onTap: _showImageSourceActionSheet,
+                    onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple,
+                        color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      child: _isUploadingImage
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                     ),
                   ),
                 ),
