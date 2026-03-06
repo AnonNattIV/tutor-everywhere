@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
+import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
@@ -29,7 +30,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
 
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = "http://10.0.2.2:3000/";
+  static const String _baseUrl = AppConstants.baseUrl;
 
   @override
   void initState() {

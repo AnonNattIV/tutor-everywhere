@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
+import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/profile.dart';
 
@@ -17,7 +18,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   final TextEditingController _searchController = TextEditingController();
 
   late final Dio _dio;
-  static const String _baseUrl = "http://10.0.2.2:3000/";
+  static const String _baseUrl = AppConstants.baseUrl;
 
   List<FindTutors> _tutors = [];
   bool _isLoading = true;

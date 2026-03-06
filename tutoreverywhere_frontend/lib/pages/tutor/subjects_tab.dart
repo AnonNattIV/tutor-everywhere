@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
+import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/subjects.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
@@ -31,7 +32,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
 
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = "http://10.0.2.2:3000/";
+  static const String _baseUrl = AppConstants.baseUrl;
 
   @override
   void initState() {
@@ -176,7 +177,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
     String? selectedSubject;
     String priceInput = '';
     
-    final List<String> subjectOptions = ['Math', 'Science', 'Thai', 'English'];
+    final List<String> subjectOptions = AppConstants.featuredSubjects;
     
     showDialog(
       context: context,
@@ -560,6 +561,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
               ),
             ),
           ),
+          if (isOwner)
           Positioned(
             right: 16,
             bottom: 16,
@@ -749,6 +751,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
           ),
         ),
         // Floating Action Button for adding subjects
+        if (isOwner)
         Positioned(
           right: 16,
           bottom: 16,

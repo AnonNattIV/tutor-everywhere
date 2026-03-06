@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
@@ -12,7 +13,7 @@ import '../models/register/tutor.dart';
 
 part 'api.g.dart';
 
-@RestApi(baseUrl: "http://10.0.2.2:3000/")
+@RestApi(baseUrl: AppConstants.baseUrl)
 abstract class RestClient {
   factory RestClient(Dio dio, {String? baseUrl}) = _RestClient;
 

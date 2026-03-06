@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/main.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/pages/all/chat.dart';
@@ -19,14 +20,9 @@ class StudentHomePage extends StatefulWidget {
 class _StudentHomePageState extends State<StudentHomePage> {
   int currentPageIndex = 0;
 
-  static const List<String> _featuredSubjects = [
-    'English',
-    'Science',
-    'Math',
-    'Thai',
-  ];
+  static const List<String> _featuredSubjects = AppConstants.featuredSubjects;
 
-  static const String _baseUrl = "http://10.0.2.2:3000/";
+  static const String _baseUrl = AppConstants.baseUrl;
   late final Dio _dio;
 
   // null = still loading, [] = loaded but empty
