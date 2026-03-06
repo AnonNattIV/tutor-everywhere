@@ -514,79 +514,13 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
   static const int _minPrice = 100;
   static const int _maxPriceCap = 1000;
 
-  static const _subjects = ['Math', 'Science', 'English', 'Thai'];
+  static const _subjects = AppConstants.featuredSubjects;
 
   // Thailand's 6 regions → provinces
-  static const _regionProvinces = <String, List<String>>{
-    'Central': [
-      'Bangkok', 'Ang Thong', 'Chai Nat', 'Kanchanaburi', 'Lop Buri',
-      'Nakhon Nayok', 'Nakhon Pathom', 'Nonthaburi', 'Pathum Thani',
-      'Phra Nakhon Si Ayutthaya', 'Prachin Buri', 'Ratchaburi', 'Samut Prakan',
-      'Samut Sakhon', 'Samut Songkhram', 'Saraburi', 'Sing Buri',
-      'Suphan Buri',
-    ],
-    'Northern': [
-      'Chiang Mai', 'Chiang Rai', 'Kamphaeng Phet', 'Lampang', 'Lamphun',
-      'Mae Hong Son', 'Nan', 'Phayao', 'Phetchabun', 'Phichit', 'Phitsanulok',
-      'Phrae', 'Sukhothai', 'Tak', 'Uthai Thani', 'Uttaradit',
-    ],
-    'Northeastern': [
-      'Amnat Charoen', 'Bueng Kan', 'Buri Ram', 'Chaiyaphum', 'Kalasin',
-      'Khon Kaen', 'Loei', 'Maha Sarakham', 'Mukdahan', 'Nakhon Phanom',
-      'Nakhon Ratchasima', 'Nong Bua Lam Phu', 'Nong Khai', 'Roi Et',
-      'Sa Kaeo', 'Sakon Nakhon', 'Si Sa Ket', 'Surin', 'Ubon Ratchathani',
-      'Udon Thani', 'Yasothon',
-    ],
-    'Eastern': [
-      'Chachoengsao', 'Chanthaburi', 'Chon Buri', 'Rayong', 'Sa Kaeo',
-      'Trat',
-    ],
-    'Western': [
-      'Kanchanaburi', 'Phetchaburi', 'Prachuap Khiri Khan', 'Ratchaburi',
-      'Samut Songkhram', 'Tak',
-    ],
-    'Southern': [
-      'Chumphon', 'Krabi', 'Nakhon Si Thammarat', 'Narathiwat', 'Pattani',
-      'Phangnga', 'Phatthalung', 'Phuket', 'Ranong', 'Satun', 'Songkhla',
-      'Surat Thani', 'Trang', 'Yala',
-    ],
-  };
+  static const _regionProvinces = AppConstants.regionProvinces;
 
   // Locations defined per province (extend as needed)
-  static const _provinceLocations = <String, List<String>>{
-    'Bangkok': [
-      'Bang Kapi', 'Bang Khae', 'Bang Khen', 'Bang Kolaem', 'Bang Na',
-      'Bang Rak', 'Bang Sue', 'Bangbon', 'Chatuchak', 'Chom Thong',
-      'Din Daeng', 'Don Mueang', 'Dusit', 'Huai Khwang', 'Khan Na Yao',
-      'Khlong Sam Wa', 'Khlong San', 'Khlong Toei', 'Lak Si', 'Lat Krabang',
-      'Lat Phrao', 'Meen Buri', 'Minburi', 'Nong Chok', 'Nong Khaem',
-      'Pasi Charoen', 'Pathum Wan', 'Phaya Thai', 'Phra Khanong',
-      'Phra Nakhon', 'Pom Prap Sattru Phai', 'Prawet', 'Rat Burana',
-      'Ratchathewi', 'Sai Mai', 'Samphanthawong', 'Saphan Sung', 'Sathon',
-      'Suan Luang', 'Taling Chan', 'Thawi Watthana', 'Thon Buri',
-      'Thung Khru', 'Wang Thonglang', 'Yan Nawa',
-    ],
-    'Nonthaburi': [
-      'Mueang Nonthaburi', 'Bang Bua Thong', 'Bang Kruai', 'Bang Yai',
-      'Pak Kret', 'Sai Noi',
-    ],
-    'Pathum Thani': [
-      'Mueang Pathum Thani', 'Khlong Luang', 'Lam Luk Ka', 'Lat Lum Kaeo',
-      'Rangsit', 'Sam Khok', 'Thanyaburi',
-    ],
-    'Samut Prakan': [
-      'Mueang Samut Prakan', 'Bang Bo', 'Bang Phli', 'Bang Sao Thong',
-      'Pak Nam', 'Phra Pradaeng', 'Phra Samut Chedi',
-    ],
-    'Chiang Mai': [
-      'Mueang Chiang Mai', 'Chiang Dao', 'Doi Saket', 'Fang', 'Hot',
-      'Mae Rim', 'Mae Taeng', 'Samoeng', 'San Kamphaeng', 'San Sai',
-    ],
-    'Chon Buri': [
-      'Mueang Chon Buri', 'Bang Lamung', 'Bo Thong', 'Ko Chan', 'Ko Si Chang',
-      'Pattaya', 'Phan Thong', 'Sattahip', 'Si Racha',
-    ],
-  };
+  static const _provinceLocations = AppConstants.provinceLocations;
 
   @override
   void initState() {

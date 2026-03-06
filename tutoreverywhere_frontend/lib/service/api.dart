@@ -50,6 +50,9 @@ abstract class RestClient {
   @POST("/tutors/preferredPlace")
   Future<void> setTutorPreferredPlace(@Header("Authorization") String jwtToken, @Field("preferred_place") preferred_place);
 
+  @PATCH("/tutors/location")
+  Future<void> setTutorLocation(@Header("Authorization") String jwtToken, @Field("province") province, @Field("location") location);
+
   // Tutors: Subjects
   @GET("/tutors/subjects/{userId}")
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);

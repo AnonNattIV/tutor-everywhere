@@ -43,6 +43,19 @@ async function updateTutorPreferredPlace(userId: string, preferred_place: string
   }
 }
 
+async function updateTutorLocation(userId: string, province: string, location: string) {
+  try {
+    await sql`
+      update tutors
+      set province = ${province}, location = ${location}
+      where user_uuid = ${userId}
+    `
+  } catch (err) {
+    console.error("Update Tutor Preferred Place Error")
+    throw err;
+  }
+}
+
 async function getTutorSubjects(userId: string) {
   try {
     const subjects = await sql`
@@ -157,4 +170,4 @@ async function findTutor(subject?: string, province?: string, location?: string,
   }
 }
 
-export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor }
+export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects, addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation }

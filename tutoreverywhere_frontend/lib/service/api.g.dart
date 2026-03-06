@@ -237,6 +237,30 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<void> setTutorLocation(
+    String jwtToken,
+    dynamic province,
+    dynamic location,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{r'Authorization': jwtToken};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'province': province, 'location': location};
+    final _options = _setStreamType<void>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tutors/location',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(String tutorId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

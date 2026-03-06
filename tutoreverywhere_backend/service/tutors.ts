@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor } from "../controllers/tutors.ts";
+import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor, updateTutorLocation } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
 import formatUserSubjects from "../helpers/formatTutorSubjects.ts";
 
@@ -59,6 +59,21 @@ tutorService.post("/preferredPlace", verifyToken, async (req, res) => {
     if (role != "tutor") throw new Error(`This user ${userId} is not a tutor`);
     await updateTutorPreferredPlace(userId, preferred_place)
     res.status(200).json({message: "Successfully updated preferred place"});
+  } catch (err) {
+    res.status(500).json({message: "Error bio"});
+  }
+})
+
+tutorService.patch("/location", verifyToken, async (req, res) => {
+  const authData = req.body.authData;
+  const userId = authData.userId;
+  const role = authData.role;
+  const province = req.body.province;
+  const location = req.body.location;
+  try {
+    if (role != "tutor") throw new Error(`This user ${userId} is not a tutor`);
+    await updateTutorLocation(userId, province, location);
+    res.status(200).json({message: "Successfully updated location"});
   } catch (err) {
     res.status(500).json({message: "Error bio"});
   }

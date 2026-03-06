@@ -48,6 +48,16 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // Location state
+  String _province = '';
+  String _location = '';
+  bool _isEditingLocation = false;
+  
+  // Location edit dialog state
+  String _selectedRegion = 'Central';
+  String _selectedProvince = '';
+  String _selectedLocation = '';
+
   // API client
   late final Dio _dio;
   late final RestClient _client;
@@ -80,6 +90,9 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
         _bioController.text = _bio;
         _preferredPlace = tutor.preferredPlace?.trim() ?? 'Not specified';
         _preferredPlaceController.text = _preferredPlace;
+        // Initialize location state
+        _province = tutor.province?.trim() ?? '';
+        _location = tutor.location?.trim() ?? '';
         _isLoading = false;
       });
     } on DioException catch (e) {
@@ -96,6 +109,155 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
         _isLoading = false;
       });
       debugPrint('Error: $e\nStack: $stackTrace');
+    }
+  }
+
+    // Location editing
+  void _startLocationEdit() {
+    // Initialize with current values
+    _selectedProvince = _province;
+    _selectedLocation = _location;
+    _selectedRegion = _province.isNotEmpty 
+        ? AppConstants.findRegionForProvince(_province) 
+        : 'Central';
+    
+    _showLocationEditDialog();
+  }
+
+  void _showLocationEditDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Edit Location'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Region dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedRegion,
+                  decoration: const InputDecoration(
+                    labelText: 'Region',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: AppConstants.regionProvinces.keys.map((region) {
+                    return DropdownMenuItem(value: region, child: Text(region));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() {
+                        _selectedRegion = value;
+                        _selectedProvince = '';
+                        _selectedLocation = '';
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Province dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedProvince.isEmpty ? null : _selectedProvince,
+                  decoration: const InputDecoration(
+                    labelText: 'Province',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: AppConstants.getProvincesForRegion(_selectedRegion)
+                      .map((province) {
+                    return DropdownMenuItem(value: province, child: Text(province));
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() {
+                        _selectedProvince = value;
+                        _selectedLocation = '';
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Location dropdown (conditional - only if province has locations)
+                if (AppConstants.getLocationsForProvince(_selectedProvince)
+                    .isNotEmpty) ...[
+                  DropdownButtonFormField<String>(
+                    value: _selectedLocation.isEmpty ? null : _selectedLocation,
+                    decoration: const InputDecoration(
+                      labelText: 'District/Location',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: AppConstants.getLocationsForProvince(_selectedProvince)
+                        .map((loc) {
+                      return DropdownMenuItem(value: loc, child: Text(loc));
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => _selectedLocation = value);
+                      }
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => _saveLocation(ctx),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _saveLocation(BuildContext dialogContext) async {
+    if (_selectedProvince.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a province')),
+      );
+      return;
+    }
+    
+    try {
+      final token = context.read<AuthProvider>().token;
+      if (token == null) throw Exception('Not authenticated');
+      
+      await _client.setTutorLocation(token, _selectedProvince, _selectedLocation);
+      
+      if (!mounted) return;
+      setState(() {
+        _province = _selectedProvince;
+        _location = _selectedLocation;
+        _isEditingLocation = false;
+      });
+      
+      Navigator.pop(dialogContext);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location updated successfully')),
+      );
+    } on DioException catch (e) {
+      print('Location save error: ${e.response?.data['message']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print('Location save error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update location'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -299,8 +461,8 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     }
 
     // Extract values
-    final firstName = _tutor?.firstname?.trim() ?? 'Teacher';
-    final lastName = _tutor?.lastname?.trim() ?? 'Name';
+    final firstName = _tutor?.firstname.trim() ?? 'Teacher';
+    final lastName = _tutor?.lastname.trim() ?? 'Name';
     final fullName = '$firstName $lastName'.trim();
     final dateOfBirth = _formatDateOfBirth(_tutor?.dateofbirth);
     final profileImageUrl = _getProfilePictureUrl();
@@ -376,19 +538,32 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           // Location (below name)
           if (displayLocation.isNotEmpty) ...[
             const SizedBox(height: 4),
+            // Location row with edit button (replace existing location display)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  displayLocation,
+                  [_province, _location].where((s) => s.isNotEmpty).join(', ')
+                      .isEmpty 
+                      ? 'Not specified' 
+                      : [_province, _location].where((s) => s.isNotEmpty).join(', '),
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey[700],
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                // Edit button - only visible to owner
+                if (isOwner)
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 16, color: Colors.deepPurple),
+                    onPressed: _startLocationEdit,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    tooltip: 'Edit location',
+                  ),
               ],
             ),
           ],
