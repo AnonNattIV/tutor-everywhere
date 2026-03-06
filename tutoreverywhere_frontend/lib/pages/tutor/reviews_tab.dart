@@ -33,12 +33,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
   static const String _baseUrl = AppConstants.baseUrl;
 
   // Predefined subjects for dropdown
-  static const List<String> _availableSubjects = [
-    'English',
-    'Science',
-    'Math',
-    'Thai',
-  ];
+  static const List<String> _availableSubjects = AppConstants.featuredSubjects;
 
   @override
   void initState() {
@@ -51,7 +46,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
     _dio = Dio(BaseOptions(
       baseUrl: _baseUrl,
       contentType: "application/json",
-      validateStatus: (status) => status != null,
+      validateStatus: (status) => status != null && status >= 200 && status < 300,
     ));
     _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
     _client = RestClient(_dio, baseUrl: _baseUrl);
@@ -229,17 +224,29 @@ class _ReviewsTabState extends State<ReviewsTab> {
                         await _fetchReviews();
                       } on DioException catch (e) {
                         if (!mounted) return;
-                        final errorMsg = e.response?.data['message'] ?? e.message ?? 'Failed to submit';
+                        
+                        String errorMsg;
+                        
+                        // 👇 Check for 500 Internal Server Error
+                        if (e.response?.statusCode == 500) {
+                          errorMsg = 'You have already reviewed for this subject, or error';
+                        } else {
+                          // Handle other errors normally
+                          errorMsg = e.response?.data['message'] ?? e.message ?? 'Failed to submit review';
+                        }
+                        
                         setDialogState(() => isSubmitting = false);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
                         );
+                        debugPrint('Dio Error submitting review: ${e.type} - ${e.message}');
                       } catch (e) {
                         if (!mounted) return;
                         setDialogState(() => isSubmitting = false);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                         );
+                        debugPrint('Error submitting review: $e');
                       }
                     },
               style: ElevatedButton.styleFrom(

@@ -306,6 +306,13 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     final profileImageUrl = _getProfilePictureUrl();
     final gender = _tutor?.gender;
     final verified = _tutor?.verified;
+
+    final province = _tutor?.province?.trim() ?? '';
+    final location = _tutor?.location?.trim() ?? '';
+    final displayLocation = [province, location]
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+
     final isOwner = context.read<AuthProvider>().userId == widget.userId;
 
     ImageProvider? profileImage;
@@ -354,6 +361,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
+          
           // Name + Gender + Verified
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -364,7 +372,29 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
               if (_buildVerifiedBadge(verified) != null) ...[const SizedBox(width: 8), _buildVerifiedBadge(verified)!],
             ],
           ),
+          
+          // Location (below name)
+          if (displayLocation.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  displayLocation,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          
           const SizedBox(height: 20),
+      
           // Action Buttons
           if (!isOwner)
             Row(
