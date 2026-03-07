@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tutoreverywhere_frontend/main.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/profile.dart';
 import 'package:provider/provider.dart';
+import 'package:tutoreverywhere_frontend/pages/tutor/schedule.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import '../all/chat.dart';
 
@@ -126,7 +127,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
       body: <Widget>[
         ChatPage(),
         TutorProfilePage(userId: context.read<AuthProvider>().userId!, embedded: true,),
-        Center(child: Text("Schedule")),
+        SchedulePage(),
       ][currentPageIndex]
     );
   } 
