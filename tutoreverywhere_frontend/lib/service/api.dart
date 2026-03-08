@@ -5,6 +5,7 @@ import 'package:retrofit/retrofit.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
+import 'package:tutoreverywhere_frontend/models/tutors/appointment.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/find_tutors.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/subjects.dart';
@@ -70,6 +71,10 @@ abstract class RestClient {
 
   @DELETE("/tutors/subjects/")
   Future<void> deleteTutorSubject(@Header("Authorization") String jwtToken, @Field("subject") String subject);
+
+  // Tutors: Appointments
+  @GET("/tutors/appointments/{userId}")
+  Future<List<Appointment>> getAppointmentByTutorId(@Path("userId") String userId, {@Query("year") int? year, @Query("month") int? month, @Query("day") int? day});
 
   // Students
   @GET("/students/profile/{userId}")

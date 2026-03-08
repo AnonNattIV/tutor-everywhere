@@ -2,6 +2,12 @@ import sql from "../db/db.ts";
 
 async function getAppointmentByUserId(userId: string, date: string) {
   try {
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
     console.log(date);
     const appointments = await sql`
       select
@@ -22,8 +28,10 @@ async function getAppointmentByUserId(userId: string, date: string) {
       from appointments as a
       join tutors as t on t.user_uuid = a.tutor_id
       join students as s on s.user_uuid = a.student_id
-      where date(start_date) = ${date}
+      where start_date >= ${startDate}
+      and start_date < ${endDate}
       and tutor_id = ${userId}
+      order by start_date asc
     `
     return appointments
   } catch (err) {

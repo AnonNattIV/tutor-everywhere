@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
+import 'package:tutoreverywhere_frontend/pages/tutor/schedule.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
@@ -662,8 +663,8 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                   // TODO: Navigate to chat
                 }),
                 const SizedBox(width: 12),
-                _buildActionButton(icon: Icons.calendar_month, label: 'View calendar', onPressed: () {
-                  // TODO: Navigate to calendar
+                _buildActionButton(icon: Icons.calendar_month, label: 'View schedule', onPressed: () {
+                  Navigator.push(context, MaterialPageRoute<void>(builder: (context) => SchedulePage(userId: widget.userId, embedded: false)));
                 }),
               ],
             ),

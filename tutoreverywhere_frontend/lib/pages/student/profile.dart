@@ -316,6 +316,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isOwner = context.read<AuthProvider>().userId == widget.userId;
     // Loading state
     if (_isLoading) {
       return widget.embedded
@@ -391,7 +392,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
+                  onTap: (_isUploadingImage || !isOwner) ? null : _showImageSourceActionSheet,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
@@ -405,35 +406,36 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         : null,
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: _isUploadingImage
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                if (isOwner)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: _isUploadingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -499,17 +501,18 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         ),
                       ),
 
-                      IconButton(
-                        onPressed: _isEditingBio ? null : _startBioEdit,
-                        icon: const Icon(
-                          Icons.edit,
-                          size: 16,
-                          color: Colors.grey,
+                      if (isOwner)
+                        IconButton(
+                          onPressed: _isEditingBio ? null : _startBioEdit,
+                          icon: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Edit bio',
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Edit bio',
-                      ),
                     ],
                   ),
                   const SizedBox(height: 4),

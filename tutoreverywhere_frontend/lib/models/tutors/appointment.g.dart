@@ -20,7 +20,7 @@ Appointment _$AppointmentFromJson(Map<String, dynamic> json) => Appointment(
   endDate: DateTime.parse(json['end_date'] as String),
   placeName: json['place_name'] as String?,
   description: json['description'] as String?,
-  subject: json['subject'] as String,
+  subject: json['subject'] as String?,
 );
 
 Map<String, dynamic> _$AppointmentToJson(Appointment instance) =>

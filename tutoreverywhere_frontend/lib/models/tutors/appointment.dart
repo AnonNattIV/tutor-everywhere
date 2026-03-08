@@ -42,7 +42,7 @@ class Appointment {
   
   final String? description;
 
-  final String subject;
+  final String? subject;
 
   Appointment({
     required this.appointmentId,
@@ -58,7 +58,7 @@ class Appointment {
     required this.endDate,
     this.placeName,
     this.description,
-    required this.subject
+    this.subject
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => 
