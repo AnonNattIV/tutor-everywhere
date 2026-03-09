@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TutorEverywhere uses your location to share meeting/navigation points in chat.</string>
 </dict>
 </plist>

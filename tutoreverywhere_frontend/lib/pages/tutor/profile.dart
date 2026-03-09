@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
+import 'package:tutoreverywhere_frontend/pages/all/chat.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/schedule.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
@@ -41,7 +42,8 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
 
   // Preferred place state
   String _preferredPlace = '';
-  final TextEditingController _preferredPlaceController = TextEditingController();
+  final TextEditingController _preferredPlaceController =
+      TextEditingController();
   bool _isEditingPreferredPlace = false;
 
   // Data state
@@ -53,7 +55,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   String _province = '';
   String _location = '';
   bool _isEditingLocation = false;
-  
+
   // Location edit dialog state
   String _selectedRegion = 'Central';
   String _selectedProvince = '';
@@ -72,12 +74,16 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null,
-    ));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) => status != null,
+      ),
+    );
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
@@ -118,10 +124,10 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     // Initialize with current values
     _selectedProvince = _province;
     _selectedLocation = _location;
-    _selectedRegion = _province.isNotEmpty 
-        ? AppConstants.findRegionForProvince(_province) 
+    _selectedRegion = _province.isNotEmpty
+        ? AppConstants.findRegionForProvince(_province)
         : 'Central';
-    
+
     _showLocationEditDialog();
   }
 
@@ -141,7 +147,10 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                   decoration: const InputDecoration(
                     labelText: 'Region',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   items: AppConstants.regionProvinces.keys.map((region) {
                     return DropdownMenuItem(value: region, child: Text(region));
@@ -163,12 +172,19 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                   decoration: const InputDecoration(
                     labelText: 'Province',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   items: AppConstants.getProvincesForRegion(_selectedRegion)
                       .map((province) {
-                    return DropdownMenuItem(value: province, child: Text(province));
-                  }).toList(),
+                        return DropdownMenuItem(
+                          value: province,
+                          child: Text(province),
+                        );
+                      })
+                      .toList(),
                   onChanged: (value) {
                     if (value != null) {
                       setDialogState(() {
@@ -180,19 +196,25 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 // Location dropdown (conditional - only if province has locations)
-                if (AppConstants.getLocationsForProvince(_selectedProvince)
-                    .isNotEmpty) ...[
+                if (AppConstants.getLocationsForProvince(
+                  _selectedProvince,
+                ).isNotEmpty) ...[
                   DropdownButtonFormField<String>(
                     value: _selectedLocation.isEmpty ? null : _selectedLocation,
                     decoration: const InputDecoration(
                       labelText: 'District/Location',
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
-                    items: AppConstants.getLocationsForProvince(_selectedProvince)
-                        .map((loc) {
-                      return DropdownMenuItem(value: loc, child: Text(loc));
-                    }).toList(),
+                    items:
+                        AppConstants.getLocationsForProvince(
+                          _selectedProvince,
+                        ).map((loc) {
+                          return DropdownMenuItem(value: loc, child: Text(loc));
+                        }).toList(),
                     onChanged: (value) {
                       if (value != null) {
                         setDialogState(() => _selectedLocation = value);
@@ -220,25 +242,29 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
 
   void _saveLocation(BuildContext dialogContext) async {
     if (_selectedProvince.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a province')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a province')));
       return;
     }
-    
+
     try {
       final token = context.read<AuthProvider>().token;
       if (token == null) throw Exception('Not authenticated');
-      
-      await _client.setTutorLocation(token, _selectedProvince, _selectedLocation);
-      
+
+      await _client.setTutorLocation(
+        token,
+        _selectedProvince,
+        _selectedLocation,
+      );
+
       if (!mounted) return;
       setState(() {
         _province = _selectedProvince;
         _location = _selectedLocation;
         _isEditingLocation = false;
       });
-      
+
       Navigator.pop(dialogContext);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Location updated successfully')),
@@ -247,7 +273,9 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       print('Location save error: ${e.response?.data['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          content: Text(
+            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -276,14 +304,18 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80, maxWidth: 1024);
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
     if (pickedFile == null) return;
-    
+
     setState(() {
       _image = File(pickedFile.path);
       _isUploadingImage = true; // Show loading indicator
     });
-    
+
     // Upload image to server
     await _uploadProfilePicture(File(pickedFile.path));
   }
@@ -292,22 +324,19 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   Future<void> _uploadProfilePicture(File imageFile) async {
     try {
       final token = context.read<AuthProvider>().token;
-      
+
       if (token == null) {
         throw Exception('No authentication token found');
       }
 
       // Call the Retrofit API endpoint
-      await _client.uploadTutorProfilePicture(
-        token ,
-        imageFile,
-      );
+      await _client.uploadTutorProfilePicture(token, imageFile);
 
       // Refresh tutor data to get updated profile picture URL
       await _fetchTutorData();
 
       if (!mounted) return;
-      
+
       setState(() {
         _isUploadingImage = false;
       });
@@ -316,7 +345,6 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile picture updated successfully')),
       );
-
     } on DioException catch (e) {
       setState(() {
         _isUploadingImage = false;
@@ -333,7 +361,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
       );
-      
+
       debugPrint('Upload error: ${e.message}');
     } catch (e) {
       setState(() {
@@ -343,9 +371,12 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-      
+
       debugPrint('Unexpected error: $e');
     }
   }
@@ -403,11 +434,17 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
         _bio = value;
         _isEditingBio = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bio updated')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bio updated')));
     } on DioException catch (e) {
       print('Bio save error: ${e.response?.data['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}')),
+        SnackBar(
+          content: Text(
+            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
+          ),
+        ),
       );
     }
   }
@@ -436,11 +473,17 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
         _preferredPlace = value;
         _isEditingPreferredPlace = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preferred place updated')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Preferred place updated')));
     } on DioException catch (e) {
       print('Preferred place save error: ${e.response?.data['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}')),
+        SnackBar(
+          content: Text(
+            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
+          ),
+        ),
       );
     }
   }
@@ -475,7 +518,10 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     return Container(
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: Colors.blue,
+        shape: BoxShape.circle,
+      ),
       child: const Icon(Icons.check, size: 14, color: Colors.white),
     );
   }
@@ -486,7 +532,11 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     VoidCallback? onPressed,
   }) {
     return ElevatedButton.icon(
-      onPressed: onPressed ?? () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label))),
+      onPressed:
+          onPressed ??
+          () => ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(label))),
       icon: Icon(icon, size: 18, color: Colors.white),
       label: Text(label, style: const TextStyle(color: Colors.white)),
       style: ElevatedButton.styleFrom(
@@ -506,7 +556,12 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(title: const Text('Tutor Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+              appBar: AppBar(
+                title: const Text('Tutor Profile'),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+              ),
               body: const Center(child: CircularProgressIndicator()),
             );
     }
@@ -517,16 +572,28 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           ? Center(child: Text('Error: $_errorMessage'))
           : Scaffold(
               backgroundColor: Colors.grey.shade50,
-              appBar: AppBar(title: const Text('Tutor Profile'), backgroundColor: Colors.transparent, elevation: 0, centerTitle: true),
+              appBar: AppBar(
+                title: const Text('Tutor Profile'),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+              ),
               body: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
                     Text('Error: $_errorMessage'),
                     const SizedBox(height: 16),
-                    ElevatedButton(onPressed: _fetchTutorData, child: const Text('Retry')),
+                    ElevatedButton(
+                      onPressed: _fetchTutorData,
+                      child: const Text('Retry'),
+                    ),
                   ],
                 ),
               ),
@@ -544,9 +611,10 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
 
     final province = _tutor?.province?.trim() ?? '';
     final location = _tutor?.location?.trim() ?? '';
-    final displayLocation = [province, location]
-        .where((s) => s.isNotEmpty)
-        .join(', ');
+    final displayLocation = [
+      province,
+      location,
+    ].where((s) => s.isNotEmpty).join(', ');
 
     final isOwner = context.read<AuthProvider>().userId == widget.userId;
 
@@ -567,13 +635,19 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: (isOwner && !_isUploadingImage) ? _showImageSourceActionSheet : null,
+                  onTap: (isOwner && !_isUploadingImage)
+                      ? _showImageSourceActionSheet
+                      : null,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
                     backgroundImage: profileImage,
-                    child: profileImage == null 
-                        ? const Icon(Icons.person, size: 70, color: Colors.deepPurple) 
+                    child: profileImage == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 70,
+                            color: Colors.deepPurple,
+                          )
                         : null,
                   ),
                 ),
@@ -582,11 +656,15 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
+                      onTap: _isUploadingImage
+                          ? null
+                          : _showImageSourceActionSheet,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
+                          color: _isUploadingImage
+                              ? Colors.grey
+                              : Colors.deepPurple,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -596,10 +674,16 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
-                            : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                            : const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                       ),
                     ),
                   ),
@@ -607,18 +691,30 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Name + Gender + Verified
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (_buildGenderIcon(gender) != null) ...[_buildGenderIcon(gender)!, const SizedBox(width: 6)],
-              Text(fullName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              if (_buildVerifiedBadge(verified) != null) ...[const SizedBox(width: 8), _buildVerifiedBadge(verified)!],
+              if (_buildGenderIcon(gender) != null) ...[
+                _buildGenderIcon(gender)!,
+                const SizedBox(width: 6),
+              ],
+              Text(
+                fullName,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (_buildVerifiedBadge(verified) != null) ...[
+                const SizedBox(width: 8),
+                _buildVerifiedBadge(verified)!,
+              ],
             ],
           ),
-          
+
           // Location (below name)
           if (displayLocation.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -629,10 +725,15 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                 Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  [_province, _location].where((s) => s.isNotEmpty).join(', ')
-                      .isEmpty 
-                      ? 'Not specified' 
-                      : [_province, _location].where((s) => s.isNotEmpty).join(', '),
+                  [
+                        _province,
+                        _location,
+                      ].where((s) => s.isNotEmpty).join(', ').isEmpty
+                      ? 'Not specified'
+                      : [
+                          _province,
+                          _location,
+                        ].where((s) => s.isNotEmpty).join(', '),
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.grey[700],
@@ -642,30 +743,62 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                 // Edit button - only visible to owner
                 if (isOwner)
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 16, color: Colors.deepPurple),
+                    icon: const Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: Colors.deepPurple,
+                    ),
                     onPressed: _startLocationEdit,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                     tooltip: 'Edit location',
                   ),
               ],
             ),
           ],
-          
+
           const SizedBox(height: 20),
-      
+
           // Action Buttons
           if (!isOwner)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildActionButton(icon: Icons.chat_bubble, label: 'Tap to chat', onPressed: () {
-                  // TODO: Navigate to chat
-                }),
+                _buildActionButton(
+                  icon: Icons.chat_bubble,
+                  label: 'Tap to chat',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => ChatPage(
+                          embedded: false,
+                          initialPeerUserId: widget.userId,
+                          initialPeerDisplayName: fullName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(width: 12),
-                _buildActionButton(icon: Icons.calendar_month, label: 'View schedule', onPressed: () {
-                  Navigator.push(context, MaterialPageRoute<void>(builder: (context) => SchedulePage(userId: widget.userId, embedded: false)));
-                }),
+                _buildActionButton(
+                  icon: Icons.calendar_month,
+                  label: 'View schedule',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => SchedulePage(
+                          userId: widget.userId,
+                          embedded: false,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           if (!isOwner) const SizedBox(height: 24),
@@ -673,7 +806,9 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           Container(
             decoration: BoxDecoration(
               color: Colors.purple.shade50,
-              border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+              ),
             ),
             child: const TabBar(
               isScrollable: true,
@@ -682,7 +817,11 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
               unselectedLabelColor: Colors.black87,
               indicatorColor: Colors.deepPurple,
               indicatorWeight: 3,
-              tabs: [Tab(text: 'Profile'), Tab(text: 'Reviews'), Tab(text: 'Subjects')],
+              tabs: [
+                Tab(text: 'Profile'),
+                Tab(text: 'Reviews'),
+                Tab(text: 'Subjects'),
+              ],
             ),
           ),
           // TabBarView
@@ -722,7 +861,10 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Tutor Profile', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Tutor Profile',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

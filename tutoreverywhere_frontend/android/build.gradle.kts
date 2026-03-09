@@ -11,9 +11,16 @@ val newBuildDir: Directory =
         .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
+val rootProjectPath = rootProject.projectDir.toPath().toAbsolutePath().normalize()
+
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    val subprojectPath = project.projectDir.toPath().toAbsolutePath().normalize()
+
+    // Keep external plugin modules (e.g. Pub cache on another drive) on their default build dirs.
+    if (subprojectPath.startsWith(rootProjectPath)) {
+        val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+        project.layout.buildDirectory.value(newSubprojectBuildDir)
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")
