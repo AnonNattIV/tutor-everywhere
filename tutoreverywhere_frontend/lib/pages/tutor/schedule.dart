@@ -201,6 +201,41 @@ class _SchedulePageState extends State<SchedulePage> {
                 ),
               ),
             ],
+
+            // TODO: if contains gps
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'View coordinate in map',
+                          recognizer: TapGestureRecognizer()..onTap = () => showDialog(context: context, builder:(context) => Dialog(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text("Hi"),
+                                  TextButton(onPressed: () => Navigator.pop(context), child: Text("Close"))
+                                ],
+                              ),
+                            )
+                          ))
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

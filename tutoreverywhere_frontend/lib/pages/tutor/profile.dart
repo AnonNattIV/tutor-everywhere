@@ -66,6 +66,8 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   late final RestClient _client;
   static const String _baseUrl = AppConstants.baseUrl;
 
+  bool _isUploadingPromptPay = false;
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +89,44 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
+  Future<void> _pickAndUploadPromptPayImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+    if (pickedFile == null) return;
+
+    setState(() => _isUploadingPromptPay = true);
+
+    try {
+      final token = context.read<AuthProvider>().token;
+      if (token == null) throw Exception('Not authenticated');
+
+      await _client.uploadTutorPromptPayPicture(token, File(pickedFile.path));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PromptPay picture updated successfully')),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingPromptPay = false);
+    }
+  }
+  
   Future<void> _fetchTutorData() async {
     try {
       final tutor = await _client.getTutorDataById(widget.userId);
@@ -760,7 +800,8 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             ),
           ],
 
-          const SizedBox(height: 20),
+          if (!isOwner)
+            const SizedBox(height: 20),
 
           // Action Buttons
           if (!isOwner)
@@ -801,6 +842,32 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                 ),
               ],
             ),
+          // PromptPay Update
+          if (isOwner) ...[
+              ElevatedButton.icon(
+              onPressed: _isUploadingPromptPay ? null : _pickAndUploadPromptPayImage,
+              icon: _isUploadingPromptPay
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.qr_code, size: 18, color: Colors.white),
+              label: Text(
+                _isUploadingPromptPay ? 'Uploading...' : 'Update PromptPay Picture',
+                style: const TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple.shade600,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+          ],
           if (!isOwner) const SizedBox(height: 24),
           // TabBar
           Container(

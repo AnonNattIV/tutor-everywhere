@@ -59,6 +59,9 @@ abstract class RestClient {
   @PATCH("/tutors/profile-picture")
   Future<void> uploadTutorProfilePicture(@Header("Authorization") String jwtToken, @Part(name: "profilePicture") File profilePicture);
 
+  @PATCH("/tutors/promptpay-picture")
+  Future<void> uploadTutorPromptPayPicture(@Header("Authorization") String jwtToken, @Part(name: "promptPayPicture") File promptPayPicture);
+
   // Tutors: Subjects
   @GET("/tutors/subjects/{userId}")
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);

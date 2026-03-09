@@ -5,7 +5,7 @@ import TutorSortBy from "../enums/tutorSortBy.ts";
 async function viewTutorData(userId: string) {
   try {
     const tutor = await sql`
-      select user_uuid, firstname, lastname, dateofbirth, gender, profile_picture, bio, verified, preferred_place, province, location
+      select user_uuid, firstname, lastname, dateofbirth, gender, profile_picture, bio, verified, preferred_place, province, location, promptpay_picture
       from tutors
       where user_uuid = ${userId}
     `;
@@ -29,6 +29,20 @@ async function updateTutorProfilePicture(userId: string, profilePicturePath: str
     throw err;
   }
 }
+
+async function updateTutorPromptPayPicture(userId: string, promptPayPicture: string) {
+  try {
+    await sql`
+      update tutors
+      set promptpay_picture = ${promptPayPicture}
+      where user_uuid = ${userId}
+    `
+  } catch (err) {
+    console.error("Update Tutor Prompt Pay Picture Error");
+    throw err;
+  }
+}
+
 
 async function updateTutorBio(userId: string, bio: string) {
   try {
@@ -184,4 +198,5 @@ async function findTutor(subject?: string, province?: string, location?: string,
 }
 
 export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects,
-  addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation, updateTutorProfilePicture }
+  addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation,
+  updateTutorProfilePicture, updateTutorPromptPayPicture }

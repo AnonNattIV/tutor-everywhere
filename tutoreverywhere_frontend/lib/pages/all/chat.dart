@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
+import 'package:tutoreverywhere_frontend/pages/tutor/requestMoney.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -601,12 +602,19 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessageInput() {
     final disabled = _activePeerUserId == null || _isSending;
+    final isTutor = context.read<AuthProvider>().role == 'tutor';
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
         child: Row(
           children: [
+            if (isTutor)
+              IconButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => RequestMoneyPage(initialPeerUserId: _activePeerUserId, initialPeerDisplayName: _activePeerDisplayName))),
+                icon: const Icon(Icons.handshake),
+                tooltip: 'Request money',
+              ),
             IconButton(
               onPressed: disabled ? null : _openPinnedLocationPicker,
               icon: const Icon(Icons.add_location_alt),

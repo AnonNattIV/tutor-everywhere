@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor, updateTutorLocation, updateTutorProfilePicture } from "../controllers/tutors.ts";
+import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor, updateTutorLocation, updateTutorProfilePicture, updateTutorPromptPayPicture } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
 import formatUserSubjects from "../helpers/formatTutorSubjects.ts";
 
@@ -90,7 +90,7 @@ tutorService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const profilePicturePath = `/pfp/${req.file.filename}`;
+      const profilePicturePath = `assets/pfp/${req.file.filename}`;
       await updateTutorProfilePicture(userId, profilePicturePath);
 
       res.status(200).json({
@@ -100,6 +100,44 @@ tutorService.patch(
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Error uploading profile picture" });
+    }
+  }
+);
+
+tutorService.patch(
+  "/promptpay-picture",
+  verifyToken,
+  (req: any, res: any, next: any) => {
+    const authData = req.body.authData;
+    upload.single('promptPayPicture')(req, res, (err) => {
+      if (err) return res.status(400).json({ message: err.message });
+      req.body.authData = authData;
+      next();
+    });
+  },
+  async (req: any, res: any) => {
+    const { userId, role } = req.body.authData;
+
+    try {
+      if (role !== "tutor") {
+        return res.status(403).json({ message: `This user ${userId} is not a tutor` });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // technical debt brrrrrrrrrr
+      const promptPayPicturePath = `assets/pfp/${req.file.filename}`;
+      await updateTutorPromptPayPicture(userId, promptPayPicturePath);
+
+      res.status(200).json({
+        message: "Successfully updated prompt pay picture",
+        profilePicture: promptPayPicturePath
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Error uploading prompt pay picture" });
     }
   }
 );
