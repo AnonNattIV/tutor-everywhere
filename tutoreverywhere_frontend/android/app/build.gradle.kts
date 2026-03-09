@@ -5,6 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val mapsApiKey =
+    (project.findProperty("MAPS_API_KEY") as String?)
+        ?: System.getenv("MAPS_API_KEY")
+        ?: ""
+
 android {
     namespace = "com.example.tutoreverywhere_frontend"
     compileSdk = flutter.compileSdkVersion
@@ -28,6 +33,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Injected from android/local.properties (not committed) or CI env var.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

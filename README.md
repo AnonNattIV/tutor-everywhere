@@ -19,6 +19,20 @@ Database: PostgreSQL
 
 `dart run build_runner build` to generate json serializable/ retrofit code
 
+**Google Maps API key (Android)**
+
+Add this to `tutoreverywhere_frontend/android/local.properties` (this file is ignored by git):
+
+```
+MAPS_API_KEY=YOUR_ANDROID_MAPS_API_KEY
+```
+
+You can also provide it in CI via environment variable:
+
+```
+MAPS_API_KEY=YOUR_ANDROID_MAPS_API_KEY
+```
+
 **Backend .env examples**
 
 ```
