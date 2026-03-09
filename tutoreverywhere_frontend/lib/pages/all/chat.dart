@@ -54,7 +54,9 @@ class _ChatPageState extends State<ChatPage> {
     _activePeerUserId = widget.initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
 
-    _loadConversations(autoselectIfNeeded: widget.initialPeerUserId == null);
+    // Default behavior: show conversation list first when opening Chat tab.
+    // A specific thread opens only when an initial peer is explicitly provided.
+    _loadConversations(autoselectIfNeeded: false);
     if (_activePeerUserId != null) {
       _loadMessages(_activePeerUserId!);
     }
