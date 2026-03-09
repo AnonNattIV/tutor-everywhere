@@ -52,7 +52,7 @@ studentService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const profilePicturePath = `/pfp/${req.file.filename}`;
+      const profilePicturePath = `assets/pfp/${req.file.filename}`;
       await updateStudentProfilePicture(userId, profilePicturePath);
 
       res.status(200).json({
