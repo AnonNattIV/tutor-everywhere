@@ -44,6 +44,10 @@ class Appointment {
 
   final String? subject;
 
+  final double? latitude;
+
+  final double? longitude;
+
   Appointment({
     required this.appointmentId,
     required this.tutorId,
@@ -58,7 +62,9 @@ class Appointment {
     required this.endDate,
     this.placeName,
     this.description,
-    this.subject
+    this.subject,
+    this.latitude,
+    this.longitude
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) => 

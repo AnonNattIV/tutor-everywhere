@@ -21,6 +21,8 @@ Appointment _$AppointmentFromJson(Map<String, dynamic> json) => Appointment(
   placeName: json['place_name'] as String?,
   description: json['description'] as String?,
   subject: json['subject'] as String?,
+  latitude: (json['latitude'] as num?)?.toDouble(),
+  longitude: (json['longitude'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$AppointmentToJson(Appointment instance) =>
@@ -39,4 +41,6 @@ Map<String, dynamic> _$AppointmentToJson(Appointment instance) =>
       'place_name': instance.placeName,
       'description': instance.description,
       'subject': instance.subject,
+      'latitude': instance.latitude,
+      'longitude': instance.longitude,
     };

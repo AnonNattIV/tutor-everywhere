@@ -24,7 +24,9 @@ async function getAppointmentByUserId(userId: string, date: string) {
       a.end_date,
       a.place_name,
       a.description,
-      a.subject
+      a.subject,
+      a.latitude,
+      a.longitude
       from appointments as a
       join tutors as t on t.user_uuid = a.tutor_id
       join students as s on s.user_uuid = a.student_id

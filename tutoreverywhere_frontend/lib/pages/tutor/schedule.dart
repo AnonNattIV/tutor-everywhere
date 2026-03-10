@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/pages/student/profile.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key, required this.userId, this.embedded = true});
@@ -32,6 +33,27 @@ class _SchedulePageState extends State<SchedulePage> {
   late final Dio _dio;
   late final RestClient _client;
   static const String _baseUrl = AppConstants.baseUrl;
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openGoogleMapsNavigation(
+    double latitude,
+    double longitude,
+  ) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude&travelmode=driving',
+    );
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      _showSnack('Could not open Google Maps');
+    }
+  }
 
   @override
   void initState() {
@@ -183,62 +205,37 @@ class _SchedulePageState extends State<SchedulePage> {
             ],
             
             // Description (if available)
-            if (appointment.description != null && appointment.description!.isNotEmpty) ...[
+            if (appointment.latitude != null && appointment.longitude != null) ...[
               const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  appointment.description!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ],
-
-            // TODO: if contains gps
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'View coordinate in map',
-                          recognizer: TapGestureRecognizer()..onTap = () => showDialog(context: context, builder:(context) => Dialog(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text("Hi"),
-                                  TextButton(onPressed: () => Navigator.pop(context), child: Text("Close"))
-                                ],
-                              ),
-                            )
-                          ))
+              Row(
+                children: [
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
                         ),
-                      ],
+                        children: [
+                          TextSpan(
+                            text: 'View coordinate in map',
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => _openGoogleMapsNavigation(
+                                    appointment.latitude!,
+                                    appointment.longitude!
+                                  ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+                ],
+              ),
+            ],
+          ]
+        )
+      )
     );
   }
 
