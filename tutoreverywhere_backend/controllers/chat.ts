@@ -428,6 +428,40 @@ async function sendRequestMoneyMessage(
   }
 }
 
+async function acceptRequestMoney(tutorId: string, message_id: string) {
+  const [chat_messages, appointments] = await sql.begin(async sql => {
+    const [chat_messages] = await sql`
+      update chat_messages
+      set message_type = 'request_money_paid'
+      where message_id = ${message_id} and message_type = 'request_money' and sender_id = ${tutorId}
+      returning *
+    `
+    const message_id_req = chat_messages.message_id;
+    const tutor_id = chat_messages.sender_id;
+    const receiver_id = chat_messages.receiver_id;
+    const start_date = chat_messages.request_payload.startAt;
+    const end_date = chat_messages.request_payload.endAt;
+    let place_name;
+    let description;
+    let subject;
+    (chat_messages.request_payload.placeName) ? place_name = chat_messages.request_payload.placeName : place_name = null;
+    (chat_messages.request_payload.description) ? description = chat_messages.request_payload.description : description = null;
+    (chat_messages.request_payload.subject) ? subject = chat_messages.request_payload.subject : subject = null;
+    const latitude = chat_messages.request_payload.latitude;
+    const longitude = chat_messages.request_payload.longitude;  
+    
+    const [appointments] = await sql`
+      insert into appointments
+      (appointment_id, tutor_id, student_id, start_date, end_date, place_name, description, subject, latitude, longitude)
+      values
+      (${message_id_req}, ${tutor_id}, ${receiver_id}, ${start_date}, ${end_date}, ${place_name}, ${description}, ${subject}, ${latitude}, ${longitude})
+      returning *
+    `
+
+    return [chat_messages, appointments]
+  })
+}
+
 export {
   ensureChatTables,
   getConversations,
@@ -437,4 +471,5 @@ export {
   sendImageMessage,
   getTutorPromptPayPicturePath,
   sendRequestMoneyMessage,
+  acceptRequestMoney
 };

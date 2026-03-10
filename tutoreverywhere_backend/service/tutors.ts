@@ -1,6 +1,6 @@
 import express from "express"
 import bodyParser from "body-parser";
-import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor, updateTutorLocation, updateTutorProfilePicture, updateTutorPromptPayPicture } from "../controllers/tutors.ts";
+import { addTutorSubject, deleteTutorSubject, getTutorSubjects, updateTutorBio, updateTutorPreferredPlace, updateTutorSubjectPrice, viewTutorData, findTutor, updateTutorLocation, updateTutorProfilePicture, updateTutorPromptPayPicture, getPromptPayPictureByTutorId } from "../controllers/tutors.ts";
 import { verifyToken } from "../middleware/verify.ts";
 import formatUserSubjects from "../helpers/formatTutorSubjects.ts";
 
@@ -64,6 +64,18 @@ tutorService.get("/profile/:userId", async (req, res) => {
     res.status(200).json(tutorData[0]);
   } catch (err) {
     res.status(404).json({message: "Account not found"});
+  }
+})
+
+tutorService.get("/promptpay-picture/:userId", async (req, res) => {
+  const params = req.params;
+  const userId = params.userId;
+  try {
+    const promptPayAsset = await getPromptPayPictureByTutorId(userId)
+    const promptPayAssetLink = '/' + promptPayAsset[0].promptpay_picture;
+    res.redirect(promptPayAssetLink);
+  } catch (err) {
+    res.status(500).json({message: "Error find tutor" });
   }
 })
 

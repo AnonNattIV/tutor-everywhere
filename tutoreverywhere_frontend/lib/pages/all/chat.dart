@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/requestMoney.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
+import 'package:tutoreverywhere_frontend/service/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ChatPage extends StatefulWidget {
@@ -35,6 +36,7 @@ class _ChatPageState extends State<ChatPage> {
   static const LatLng _defaultMapCenter = LatLng(13.7563, 100.5018);
 
   late final Dio _dio;
+  late final RestClient _client;
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _messageScrollController = ScrollController();
@@ -43,6 +45,7 @@ class _ChatPageState extends State<ChatPage> {
   bool _isLoadingConversations = true;
   bool _isLoadingMessages = false;
   bool _isSending = false;
+  bool _isAcceptingPayment = false;
 
   List<_ConversationPreview> _conversations = <_ConversationPreview>[];
   List<_ChatMessage> _messages = <_ChatMessage>[];
@@ -76,6 +79,8 @@ class _ChatPageState extends State<ChatPage> {
         validateStatus: (status) => status != null,
       ),
     );
+
+    _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
   @override
@@ -208,6 +213,55 @@ class _ChatPageState extends State<ChatPage> {
       price: payload.amount.round(),
       pinnedLocation: LatLng(payload.latitude!, payload.longitude!),
     );
+  }
+
+  Future<void> _showPaidDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('You have already paid'),
+          content: const Text('This payment has accepted by the tutor'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> acceptPayment(String messageId) async {
+    if (_isAcceptingPayment) {
+      print('Payment already in progress');
+      return;
+    }
+
+    setState(() {
+      _isAcceptingPayment = true;
+    });
+
+    try {
+      final token = context.read<AuthProvider>().token;
+      await _client.acceptPromptPay(token!, messageId);
+      _showAcceptedDialog();
+      if (mounted) {
+        _showAcceptedDialog();
+      }
+    } on DioException catch (e) {
+      print('Dio error: ${e.message}');
+      print('Response status: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+    } catch (e) {
+      print('Unexpected error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAcceptingPayment = false;
+        });
+    }
   }
 
   Future<void> _showAcceptedDialog() async {
@@ -888,36 +942,53 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final draft = _buildDraftFromPayload(payload);
-                      if (draft == null) {
-                        _showSnack(
-                          'Cannot edit this request (missing date/location data)',
-                        );
-                        return;
-                      }
-                      await _openRequestMoneyForm(initialDraft: draft);
-                    },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(36),
+                if (!message.messageType.contains('paid')) ... [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final draft = _buildDraftFromPayload(payload);
+                        if (draft == null) {
+                          _showSnack(
+                            'Cannot edit this request (missing date/location data)',
+                          );
+                          return;
+                        }
+                        await _openRequestMoneyForm(initialDraft: draft);
+                      },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(36),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _showAcceptedDialog,
-                    icon: const Icon(Icons.check_circle),
-                    label: const Text('Accept'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(36),
+                ],
+                if (!message.messageType.contains('paid')) ... [
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => acceptPayment(message.messageId),
+                      icon: const Icon(Icons.check_circle),
+                      label: const Text('Accept'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(36),
+                      ),
                     ),
                   ),
-                ),
+                ] else ... [
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _showPaidDialog,
+                      icon: const Icon(Icons.check_circle),
+                      label: const Text('Paid'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(36),
+                        backgroundColor: Colors.green
+                      ),
+                    ),
+                  ),
+                ]
               ],
             ),
           ],
@@ -1175,6 +1246,7 @@ class _ConversationPreview {
 
 class _ChatMessage {
   _ChatMessage({
+    required this.messageId,
     required this.senderId,
     required this.receiverId,
     required this.messageType,
@@ -1186,6 +1258,7 @@ class _ChatMessage {
     required this.createdAt,
   });
 
+  final String messageId;
   final String senderId;
   final String receiverId;
   final String messageType;
@@ -1198,10 +1271,11 @@ class _ChatMessage {
 
   bool get isLocation => messageType == 'location';
   bool get isImage => messageType == 'image';
-  bool get isRequestMoney => messageType == 'request_money';
+  bool get isRequestMoney => messageType.contains('request_money');
 
   factory _ChatMessage.fromJson(Map<String, dynamic> json) {
     return _ChatMessage(
+      messageId: _readString(json['message_id']),
       senderId: _readString(json['sender_id']),
       receiverId: _readString(json['receiver_id']),
       messageType: _readString(json['message_type']),

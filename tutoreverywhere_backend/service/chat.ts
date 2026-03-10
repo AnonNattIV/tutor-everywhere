@@ -15,15 +15,16 @@ import {
   sendLocationMessage,
   sendRequestMoneyMessage,
   sendTextMessage,
+  acceptRequestMoney,
 } from "../controllers/chat.ts";
 
 const chatService = express.Router();
 
 chatService.use(bodyParser.json());
 
-ensureChatTables().catch((err) => {
-  console.error("Chat table initialization failed", err);
-});
+// ensureChatTables().catch((err) => {
+//   console.error("Chat table initialization failed", err);
+// });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -278,5 +279,16 @@ chatService.post("/messages/:otherUserId/request-money", verifyToken, async (req
     return res.status(500).json({ message: "Error sending request money message" });
   }
 });
+
+chatService.post("/accept", verifyToken, async (req: any, res) => {
+  const tutorId = getAuthenticatedUserId(req)
+  const message_id = req.body.message_id;
+  try {
+    await acceptRequestMoney(tutorId, message_id);
+    res.status(200).json({message: "Successfully accepted request"});
+  } catch {
+    res.status(500).json({message: "Error Accept"});
+  }
+})
 
 export default chatService;

@@ -17,6 +17,22 @@ async function viewTutorData(userId: string) {
   }
 }
 
+
+async function getPromptPayPictureByTutorId(userId: string) {
+  try {
+    const tutor = await sql`
+      select promptpay_picture
+      from tutors
+      where user_uuid = ${userId}
+    `;
+
+    return tutor;
+  } catch (err) {
+    console.error("Get Prompt Pay Picture Error");
+    throw err;
+  }
+}
+
 async function updateTutorProfilePicture(userId: string, profilePicturePath: string) {
   try {
     await sql`
@@ -199,4 +215,4 @@ async function findTutor(subject?: string, province?: string, location?: string,
 
 export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects,
   addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation,
-  updateTutorProfilePicture, updateTutorPromptPayPicture }
+  updateTutorProfilePicture, updateTutorPromptPayPicture, getPromptPayPictureByTutorId }

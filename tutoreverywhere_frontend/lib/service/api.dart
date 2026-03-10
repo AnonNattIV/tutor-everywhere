@@ -96,4 +96,8 @@ abstract class RestClient {
 
   @POST("/reviews")
   Future<void> addReview(@Header("Authorization") String jwtToken, @Body() Review review);
+
+  // Chat Accept
+  @POST("/chat/accept")
+  Future<void> acceptPromptPay(@Header("Authorization") String jwtToken, @Field("message_id") messageId);
 }
