@@ -203,7 +203,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     }
 
     // Return absolute URL if already full, otherwise prepend base URL
-    final url = pic.startsWith('http') ? pic : _baseUrl + 'assets' + pic;
+    final url = pic.startsWith('http') ? pic : _baseUrl + pic;
     return NetworkImage(url);
   }
 

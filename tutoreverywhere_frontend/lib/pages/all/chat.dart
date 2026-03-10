@@ -246,7 +246,6 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final token = context.read<AuthProvider>().token;
       await _client.acceptPromptPay(token!, messageId);
-      _showAcceptedDialog();
       if (mounted) {
         _showAcceptedDialog();
       }
@@ -261,6 +260,7 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           _isAcceptingPayment = false;
         });
+      }
     }
   }
 
@@ -938,6 +938,20 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
           ),
+      
+          if (message.messageType.contains('paid')) ... [
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: _showPaidDialog,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Paid'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(36),
+                backgroundColor: Colors.green
+              ),
+            ),
+          ],
+
           if (showTutorActions) ...[
             const SizedBox(height: 6),
             Row(
@@ -975,20 +989,7 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                     ),
                   ),
-                ] else ... [
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _showPaidDialog,
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Paid'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(36),
-                        backgroundColor: Colors.green
-                      ),
-                    ),
-                  ),
-                ]
+                ],
               ],
             ),
           ],
