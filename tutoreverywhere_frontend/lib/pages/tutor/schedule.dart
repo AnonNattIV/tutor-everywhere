@@ -109,6 +109,31 @@ class _SchedulePageState extends State<SchedulePage> {
     super.dispose();
   }
 
+  Widget _buildHiddenAppointmentCard(Appointment appointment) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time, size: 16, color: Colors.grey),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                '${DateFormat('dd/MM/yyyy HH:mm').format(appointment.startDate)} - ${DateFormat('HH:mm').format(appointment.endDate)}',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAppointmentCard(Appointment appointment) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -305,7 +330,7 @@ class _SchedulePageState extends State<SchedulePage> {
           else
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildAppointmentCard(_appointments[index]),
+                (context, index) => (isOwner) ? _buildAppointmentCard(_appointments[index]) : _buildHiddenAppointmentCard(_appointments[index]),
                 childCount: _appointments.length,
               ),
             ),
