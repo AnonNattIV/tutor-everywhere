@@ -16,8 +16,8 @@ const storage = multer.diskStorage({
     // const authData = req.body.authData;
     // const userId = authData?.userId || 'unknown';
     const uniqueSuffix = uuidv7().toString();
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}-${ext}`);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${uniqueSuffix}${ext}`);
   }
 });
 

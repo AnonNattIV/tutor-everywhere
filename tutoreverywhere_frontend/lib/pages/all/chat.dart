@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/requestMoney.dart';
@@ -33,6 +35,7 @@ class _ChatPageState extends State<ChatPage> {
   static const LatLng _defaultMapCenter = LatLng(13.7563, 100.5018);
 
   late final Dio _dio;
+  final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _messageScrollController = ScrollController();
 
@@ -132,6 +135,97 @@ class _ChatPageState extends State<ChatPage> {
       return '$_baseUrl${trimmed.substring(1)}';
     }
     return '$_baseUrl$trimmed';
+  }
+
+  String? _absoluteAssetUrl(String path) {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return '$_baseUrl${trimmed.substring(1)}';
+    }
+    return '$_baseUrl$trimmed';
+  }
+
+  String _conversationSubtitle(_ConversationPreview conversation) {
+    final type = conversation.messageType.toLowerCase();
+    if (type == 'location') return 'Shared location';
+    if (type == 'image') return 'Sent an image';
+    if (type == 'request_money') {
+      final text = conversation.messageText.trim();
+      return text.isEmpty ? 'Request money' : text;
+    }
+    final text = conversation.messageText.trim();
+    return text.isEmpty ? 'No message' : text;
+  }
+
+  Future<void> _openRequestMoneyForm({RequestMoneyDraft? initialDraft}) async {
+    final peerUserId = _activePeerUserId;
+    if (peerUserId == null || _isSending) return;
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RequestMoneyPage(
+          initialPeerUserId: peerUserId,
+          initialPeerDisplayName: _activePeerDisplayName,
+          initialDraft: initialDraft,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _loadMessages(peerUserId, silent: true);
+      await _loadConversations(silent: true);
+    }
+  }
+
+  RequestMoneyDraft? _buildDraftFromPayload(_RequestMoneyPayload payload) {
+    if (payload.latitude == null || payload.longitude == null) {
+      return null;
+    }
+    final startDate = payload.startAtDate;
+    final endDate = payload.endAtDate;
+    if (startDate == null || endDate == null || !endDate.isAfter(startDate)) {
+      return null;
+    }
+
+    final subject = payload.subject.trim().isEmpty
+        ? AppConstants.featuredSubjects.first
+        : payload.subject.trim();
+    final placeName = payload.placeName.trim().isEmpty
+        ? payload.locationLabel
+        : payload.placeName.trim();
+
+    return RequestMoneyDraft(
+      subject: subject,
+      placeName: placeName,
+      description: payload.description,
+      startDate: startDate,
+      endDate: endDate,
+      price: payload.amount.round(),
+      pinnedLocation: LatLng(payload.latitude!, payload.longitude!),
+    );
+  }
+
+  Future<void> _showAcceptedDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Success'),
+          content: const Text('Accepted successfully'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<Position?> _getCurrentPosition({bool showErrors = true}) async {
@@ -352,6 +446,113 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _sendImageMessage(
+    XFile imageFile, {
+    required String peerUserId,
+    String? caption,
+  }) async {
+    if (_isSending) return;
+
+    final token = context.read<AuthProvider>().token;
+    if (token == null || token.isEmpty) {
+      _showSnack('Not authenticated');
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.name,
+        ),
+        if (caption != null && caption.trim().isNotEmpty)
+          'text': caption.trim(),
+      });
+
+      final response = await _dio.post<dynamic>(
+        'chat/messages/$peerUserId/image',
+        data: formData,
+        options: Options(
+          headers: <String, dynamic>{
+            'Authorization': token,
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode != 201) {
+        final msg = response.data is Map && response.data['message'] != null
+            ? response.data['message'].toString()
+            : 'Failed to send image';
+        _showSnack(msg);
+        return;
+      }
+
+      _messageController.clear();
+      await _loadMessages(peerUserId, silent: true);
+      await _loadConversations(silent: true);
+    } catch (e) {
+      _showSnack('Error sending image: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    final peerUserId = _activePeerUserId;
+    if (peerUserId == null || _isSending) return;
+
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 2400,
+    );
+    if (picked == null) return;
+
+    final caption = _messageController.text.trim();
+    await _sendImageMessage(
+      picked,
+      peerUserId: peerUserId,
+      caption: caption.isEmpty ? null : caption,
+    );
+  }
+
+  Future<void> _openImagePickerOptions() async {
+    if (_activePeerUserId == null || _isSending) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Photo from gallery'),
+                onTap: () => Navigator.pop(sheetContext, 'gallery'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take photo'),
+                onTap: () => Navigator.pop(sheetContext, 'camera'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == 'gallery') {
+      await _pickAndSendImage(ImageSource.gallery);
+    } else if (action == 'camera') {
+      await _pickAndSendImage(ImageSource.camera);
+    }
+  }
+
   Future<void> _openPinnedLocationPicker() async {
     final peerUserId = _activePeerUserId;
     if (peerUserId == null || _isSending) return;
@@ -424,9 +625,7 @@ class _ChatPageState extends State<ChatPage> {
           final profileUrl = _absoluteProfilePictureUrl(
             conversation.partnerProfilePicture,
           );
-          final subtitle = conversation.messageType == 'location'
-              ? 'Shared location'
-              : conversation.messageText.trim();
+          final subtitle = _conversationSubtitle(conversation);
 
           return ListTile(
             leading: CircleAvatar(
@@ -441,7 +640,7 @@ class _ChatPageState extends State<ChatPage> {
               overflow: TextOverflow.ellipsis,
             ),
             subtitle: Text(
-              subtitle.isEmpty ? 'No message' : subtitle,
+              subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -514,6 +713,219 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  Widget _buildImageMessageBody(_ChatMessage message) {
+    final imageUrl = _absoluteAssetUrl(message.imagePath);
+    final text = message.messageText.trim();
+    final hasCaption = text.isNotEmpty && text.toLowerCase() != 'sent an image';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (imageUrl == null)
+          const Text('Image not available')
+        else
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              imageUrl,
+              width: 260,
+              height: 180,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 260,
+                  height: 180,
+                  color: Colors.grey.shade300,
+                  alignment: Alignment.center,
+                  child: const Text('Failed to load image'),
+                );
+              },
+            ),
+          ),
+        if (hasCaption) ...[const SizedBox(height: 8), Text(text)],
+      ],
+    );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount % 1 == 0) {
+      return amount.toInt().toString();
+    }
+    return amount.toStringAsFixed(2);
+  }
+
+  Widget _buildRequestMoneyCard(_ChatMessage message, {required bool isMine}) {
+    final payload = message.requestPayload;
+    if (payload == null) {
+      return Text(
+        message.messageText.trim().isEmpty
+            ? 'Request money'
+            : message.messageText,
+      );
+    }
+
+    final qrUrl = _absoluteAssetUrl(payload.promptpayPicturePath);
+    final canOpenMap = payload.latitude != null && payload.longitude != null;
+    final amountText = _formatAmount(payload.amount);
+    final hourText = _formatAmount(payload.hours);
+    final role = context.read<AuthProvider>().role?.toLowerCase();
+    final showTutorActions = role == 'tutor' && isMine;
+    final cardColor = isMine
+        ? Colors.deepPurple.shade100
+        : Colors.grey.shade200;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Request $amountText Baht for $hourText Hours',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Date: ${payload.dateLabel}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Location: ${payload.locationLabel}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          if (payload.subject.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Subject: ${payload.subject}',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ],
+          if (payload.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              payload.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Center(
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.black26),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: qrUrl == null
+                  ? const Center(
+                      child: Text(
+                        'PromptPay QR',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  : Image.network(
+                      qrUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Text(
+                              'PromptPay QR\nnot found',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: canOpenMap
+                  ? () => _openGoogleMapsNavigation(
+                      payload.latitude!,
+                      payload.longitude!,
+                    )
+                  : null,
+              icon: const Icon(
+                Icons.map_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
+              label: const Text(
+                'Open map location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple.shade400,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          if (showTutorActions) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final draft = _buildDraftFromPayload(payload);
+                      if (draft == null) {
+                        _showSnack(
+                          'Cannot edit this request (missing date/location data)',
+                        );
+                        return;
+                      }
+                      await _openRequestMoneyForm(initialDraft: draft);
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(36),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _showAcceptedDialog,
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('Accept'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(36),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(_ChatMessage message) {
     final currentUserId = context.read<AuthProvider>().userId;
     final isMine = currentUserId != null && message.senderId == currentUserId;
@@ -523,7 +935,11 @@ class _ChatPageState extends State<ChatPage> {
     final alignment = isMine ? Alignment.centerRight : Alignment.centerLeft;
 
     Widget body;
-    if (message.isLocation &&
+    if (message.isRequestMoney) {
+      body = _buildRequestMoneyCard(message, isMine: isMine);
+    } else if (message.isImage) {
+      body = _buildImageMessageBody(message);
+    } else if (message.isLocation &&
         message.latitude != null &&
         message.longitude != null) {
       final latitude = message.latitude!;
@@ -576,11 +992,13 @@ class _ChatPageState extends State<ChatPage> {
       alignment: alignment,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: message.isRequestMoney
+            ? EdgeInsets.zero
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         constraints: const BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.circular(12),
+          color: message.isRequestMoney ? Colors.transparent : bubbleColor,
+          borderRadius: BorderRadius.circular(message.isRequestMoney ? 14 : 12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,10 +1029,15 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             if (isTutor)
               IconButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => RequestMoneyPage(initialPeerUserId: _activePeerUserId, initialPeerDisplayName: _activePeerDisplayName))),
+                onPressed: disabled ? null : _openRequestMoneyForm,
                 icon: const Icon(Icons.handshake),
                 tooltip: 'Request money',
               ),
+            IconButton(
+              onPressed: disabled ? null : _openImagePickerOptions,
+              icon: const Icon(Icons.image_outlined),
+              tooltip: 'Send image',
+            ),
             IconButton(
               onPressed: disabled ? null : _openPinnedLocationPicker,
               icon: const Icon(Icons.add_location_alt),
@@ -758,6 +1181,8 @@ class _ChatMessage {
     required this.messageText,
     required this.latitude,
     required this.longitude,
+    required this.imagePath,
+    required this.requestPayload,
     required this.createdAt,
   });
 
@@ -767,9 +1192,13 @@ class _ChatMessage {
   final String messageText;
   final double? latitude;
   final double? longitude;
+  final String imagePath;
+  final _RequestMoneyPayload? requestPayload;
   final DateTime? createdAt;
 
   bool get isLocation => messageType == 'location';
+  bool get isImage => messageType == 'image';
+  bool get isRequestMoney => messageType == 'request_money';
 
   factory _ChatMessage.fromJson(Map<String, dynamic> json) {
     return _ChatMessage(
@@ -779,8 +1208,69 @@ class _ChatMessage {
       messageText: _readString(json['message_text']),
       latitude: _readDouble(json['latitude']),
       longitude: _readDouble(json['longitude']),
+      imagePath: _readString(json['image_path']),
+      requestPayload: _RequestMoneyPayload.fromDynamic(json['request_payload']),
       createdAt: _readDateTime(json['created_at']),
     );
+  }
+}
+
+class _RequestMoneyPayload {
+  const _RequestMoneyPayload({
+    required this.subject,
+    required this.amount,
+    required this.hours,
+    required this.startAt,
+    required this.endAt,
+    required this.dateLabel,
+    required this.locationLabel,
+    required this.placeName,
+    required this.description,
+    required this.latitude,
+    required this.longitude,
+    required this.promptpayPicturePath,
+    required this.tutorId,
+  });
+
+  final String subject;
+  final double amount;
+  final double hours;
+  final String startAt;
+  final String endAt;
+  final String dateLabel;
+  final String locationLabel;
+  final String placeName;
+  final String description;
+  final double? latitude;
+  final double? longitude;
+  final String promptpayPicturePath;
+  final String tutorId;
+
+  DateTime? get startAtDate => _readDateTime(startAt);
+  DateTime? get endAtDate => _readDateTime(endAt);
+
+  factory _RequestMoneyPayload.fromMap(Map<String, dynamic> map) {
+    return _RequestMoneyPayload(
+      subject: _readString(map['subject']),
+      amount: _readDouble(map['amount']) ?? 0,
+      hours: _readDouble(map['hours']) ?? 0,
+      startAt: _readString(map['startAt']),
+      endAt: _readString(map['endAt']),
+      dateLabel: _readString(map['dateLabel']),
+      locationLabel: _readString(map['locationLabel']),
+      placeName: _readString(map['placeName']),
+      description: _readString(map['description']),
+      latitude: _readDouble(map['latitude']),
+      longitude: _readDouble(map['longitude']),
+      promptpayPicturePath: _readString(map['promptpayPicturePath']),
+      tutorId: _readString(map['tutorId']),
+    );
+  }
+
+  static _RequestMoneyPayload? fromDynamic(dynamic value) {
+    final mapped = _readMap(value);
+    if (mapped == null) return null;
+    return _RequestMoneyPayload.fromMap(mapped);
   }
 }
 
@@ -950,6 +1440,26 @@ double? _readDouble(dynamic value) {
   if (value == null) return null;
   if (value is num) return value.toDouble();
   return double.tryParse(value.toString());
+}
+
+Map<String, dynamic>? _readMap(dynamic value) {
+  if (value == null) return null;
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+  if (value is String) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) {
+        return decoded.map((key, val) => MapEntry(key.toString(), val));
+      }
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
 }
 
 DateTime? _readDateTime(dynamic value) {

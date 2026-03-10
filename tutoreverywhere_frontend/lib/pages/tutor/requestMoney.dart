@@ -1,17 +1,44 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
+import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
+
+class RequestMoneyDraft {
+  const RequestMoneyDraft({
+    required this.subject,
+    required this.placeName,
+    required this.description,
+    required this.startDate,
+    required this.endDate,
+    required this.price,
+    required this.pinnedLocation,
+  });
+
+  final String subject;
+  final String placeName;
+  final String description;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int price;
+  final LatLng pinnedLocation;
+}
 
 class RequestMoneyPage extends StatefulWidget {
-  RequestMoneyPage({
+  const RequestMoneyPage({
     super.key,
     this.initialPeerUserId,
     this.initialPeerDisplayName,
+    this.initialDraft,
   });
 
   final String? initialPeerUserId;
   final String? initialPeerDisplayName;
+  final RequestMoneyDraft? initialDraft;
 
   @override
   State<RequestMoneyPage> createState() => _RequestMoneyPageState();
@@ -19,6 +46,10 @@ class RequestMoneyPage extends StatefulWidget {
 
 class _RequestMoneyPageState extends State<RequestMoneyPage> {
   static const List<String> _availableSubjects = AppConstants.featuredSubjects;
+  static const LatLng _defaultLocation = LatLng(13.7563, 100.5018);
+  static const String _baseUrl = AppConstants.baseUrl;
+
+  late final Dio _dio;
 
   String? selectedSubject;
   String? _activePeerUserId;
@@ -31,16 +62,40 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   LatLng? _pinnedLocation;
+  bool _isSubmitting = false;
+
+  bool get _isEditMode => widget.initialDraft != null;
 
   @override
   void initState() {
     super.initState();
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        validateStatus: (status) => status != null,
+      ),
+    );
+
     _activePeerUserId = widget.initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
+
+    final draft = widget.initialDraft;
+    if (draft != null) {
+      selectedSubject = draft.subject;
+      _placeNameController.text = draft.placeName;
+      _descriptionController.text = draft.description;
+      _priceController.text = draft.price.toString();
+      _startDate = draft.startDate;
+      _endDate = draft.endDate;
+      _pinnedLocation = draft.pinnedLocation;
+    }
   }
 
   @override
   void dispose() {
+    _dio.close(force: true);
     _placeNameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
@@ -50,7 +105,6 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
   Future<DateTime?> _pickDateTime({
     required DateTime? currentDate,
     required TimeOfDay? currentTime,
-    required bool isStart,
   }) async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -80,13 +134,14 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
   Future<void> _pickStartDateTime() async {
     final result = await _pickDateTime(
       currentDate: _startDate,
-      currentTime: _startDate != null ? TimeOfDay.fromDateTime(_startDate!) : null,
-      isStart: true,
+      currentTime: _startDate != null
+          ? TimeOfDay.fromDateTime(_startDate!)
+          : null,
     );
     if (result != null) {
       setState(() {
         _startDate = result;
-        if (_endDate != null && _endDate!.isBefore(result)) {
+        if (_endDate != null && !_endDate!.isAfter(result)) {
           _endDate = null;
         }
       });
@@ -97,7 +152,6 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
     final result = await _pickDateTime(
       currentDate: _endDate,
       currentTime: _endDate != null ? TimeOfDay.fromDateTime(_endDate!) : null,
-      isStart: false,
     );
     if (result != null) {
       setState(() => _endDate = result);
@@ -106,25 +160,194 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'Select';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 
   String _formatTime(DateTime? date) {
     if (date == null) return '--:--';
-    final h = date.hour.toString().padLeft(2, '0');
-    final m = date.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+    return DateFormat('HH:mm').format(date);
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<Position?> _getCurrentPosition({bool showErrors = true}) async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (showErrors) _showSnack('Please enable location services');
+      return null;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (showErrors) _showSnack('Location permission denied');
+      return null;
+    }
+
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
   }
 
   Future<void> _openMapPicker() async {
-    final result = await Navigator.push<LatLng>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _MapPickerPage(initialLocation: _pinnedLocation),
-      ),
+    final currentPosition = await _getCurrentPosition(showErrors: false);
+    final initialCenter =
+        _pinnedLocation ??
+        (currentPosition == null
+            ? _defaultLocation
+            : LatLng(currentPosition.latitude, currentPosition.longitude));
+    if (currentPosition == null && _pinnedLocation == null) {
+      _showSnack('Could not read GPS. Use map pin manually.');
+    }
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<_PinnedLocationResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) =>
+          _RequestMoneyLocationPickerSheet(initialCenter: initialCenter),
     );
+
     if (result != null) {
-      setState(() => _pinnedLocation = result);
+      setState(
+        () => _pinnedLocation = LatLng(result.latitude, result.longitude),
+      );
+    }
+  }
+
+  double _calculateHours(DateTime start, DateTime end) {
+    final diffMinutes = end.difference(start).inMinutes;
+    final hours = diffMinutes / 60.0;
+    return double.parse(hours.toStringAsFixed(2));
+  }
+
+  String _buildLocationLabel() {
+    final placeName = _placeNameController.text.trim();
+    if (placeName.isNotEmpty) return placeName;
+    final location = _pinnedLocation!;
+    return 'Lat ${location.latitude.toStringAsFixed(5)}, Lng ${location.longitude.toStringAsFixed(5)}';
+  }
+
+  Future<void> _submitRequestMoney() async {
+    final peerUserId = _activePeerUserId;
+    if (peerUserId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Missing chat target user')));
+      return;
+    }
+
+    final subject = selectedSubject?.trim() ?? '';
+    final startDate = _startDate;
+    final endDate = _endDate;
+    final location = _pinnedLocation;
+    final amount = int.tryParse(_priceController.text.trim()) ?? 0;
+
+    if (subject.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a subject')));
+      return;
+    }
+
+    if (startDate == null || endDate == null || !endDate.isAfter(startDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select valid start and end time')),
+      );
+      return;
+    }
+
+    if (location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please pin a location on map')),
+      );
+      return;
+    }
+
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Price must be greater than 0')),
+      );
+      return;
+    }
+
+    final hours = _calculateHours(startDate, endDate);
+    if (hours <= 0) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid duration')));
+      return;
+    }
+
+    final token = context.read<AuthProvider>().token;
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Not authenticated')));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final response = await _dio.post<dynamic>(
+        'chat/messages/$peerUserId/request-money',
+        data: <String, dynamic>{
+          'subject': subject,
+          'amount': amount,
+          'hours': hours,
+          'startAt': startDate.toIso8601String(),
+          'endAt': endDate.toIso8601String(),
+          'dateLabel': DateFormat('d MMMM yyyy').format(startDate),
+          'locationLabel': _buildLocationLabel(),
+          'placeName': _placeNameController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'latitude': location.latitude,
+          'longitude': location.longitude,
+        },
+        options: Options(headers: <String, dynamic>{'Authorization': token}),
+      );
+
+      if (!mounted) return;
+      if (response.statusCode != 201) {
+        final msg = response.data is Map && response.data['message'] != null
+            ? response.data['message'].toString()
+            : 'Failed to send request money';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditMode
+                ? 'Updated request money successfully'
+                : 'Sent request money successfully',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending request money: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -142,40 +365,44 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
-              value: selectedSubject,
+              initialValue: selectedSubject,
               decoration: const InputDecoration(
                 labelText: 'Subject',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
               ),
               items: _availableSubjects.map((subject) {
                 return DropdownMenuItem(value: subject, child: Text(subject));
               }).toList(),
               onChanged: (value) => setState(() => selectedSubject = value),
-              validator: (value) =>
-                  value == null ? 'Please select a subject' : null,
             ),
-
             TextField(
               controller: _placeNameController,
               decoration: const InputDecoration(
                 labelText: 'Place Name (optional)',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
               ),
             ),
-
             TextField(
               controller: _descriptionController,
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Description (optional)',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 alignLabelWithHint: true,
               ),
             ),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -188,13 +415,18 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                           decoration: const InputDecoration(
                             labelText: 'Start Date',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                             suffixIcon: Icon(Icons.calendar_today, size: 18),
                           ),
                           child: Text(
                             _formatDate(_startDate),
                             style: TextStyle(
-                              color: _startDate == null ? Theme.of(context).hintColor : null,
+                              color: _startDate == null
+                                  ? Theme.of(context).hintColor
+                                  : null,
                             ),
                           ),
                         ),
@@ -208,13 +440,18 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                           decoration: const InputDecoration(
                             labelText: 'End Date',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                             suffixIcon: Icon(Icons.calendar_today, size: 18),
                           ),
                           child: Text(
                             _formatDate(_endDate),
                             style: TextStyle(
-                              color: _endDate == null ? Theme.of(context).hintColor : null,
+                              color: _endDate == null
+                                  ? Theme.of(context).hintColor
+                                  : null,
                             ),
                           ),
                         ),
@@ -232,13 +469,18 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                           decoration: const InputDecoration(
                             labelText: 'Start Time',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                             suffixIcon: Icon(Icons.access_time, size: 18),
                           ),
                           child: Text(
                             _formatTime(_startDate),
                             style: TextStyle(
-                              color: _startDate == null ? Theme.of(context).hintColor : null,
+                              color: _startDate == null
+                                  ? Theme.of(context).hintColor
+                                  : null,
                             ),
                           ),
                         ),
@@ -252,13 +494,18 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                           decoration: const InputDecoration(
                             labelText: 'End Time',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                             suffixIcon: Icon(Icons.access_time, size: 18),
                           ),
                           child: Text(
                             _formatTime(_endDate),
                             style: TextStyle(
-                              color: _endDate == null ? Theme.of(context).hintColor : null,
+                              color: _endDate == null
+                                  ? Theme.of(context).hintColor
+                                  : null,
                             ),
                           ),
                         ),
@@ -268,27 +515,31 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                 ),
               ],
             ),
-
             TextField(
               controller: _priceController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
-                labelText: 'Price (฿)',
+                labelText: 'Price (Baht)',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                prefixText: '\$ ',
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                prefixText: '฿ ',
               ),
             ),
-
-            // Map location picker button + coordinate display
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 OutlinedButton.icon(
                   onPressed: _openMapPicker,
                   icon: const Icon(Icons.map_outlined),
-                  label: Text(_pinnedLocation == null ? 'Pin Location on Map' : 'Change Pinned Location'),
+                  label: Text(
+                    _pinnedLocation == null
+                        ? 'Pin Location on Map'
+                        : 'Change Pinned Location',
+                  ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
                   ),
@@ -298,22 +549,28 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
                   Text(
                     'Lat: ${_pinnedLocation!.latitude.toStringAsFixed(6)},  Lng: ${_pinnedLocation!.longitude.toStringAsFixed(6)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ],
               ],
             ),
-
             const Spacer(),
-
-            // Send Request button
             FilledButton(
-              onPressed: null,
+              onPressed: _isSubmitting ? null : _submitRequestMoney,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
-              child: const Text('Send Request', style: TextStyle(fontSize: 16)),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      _isEditMode ? 'Update Request' : 'Send Request',
+                      style: const TextStyle(fontSize: 16),
+                    ),
             ),
           ],
         ),
@@ -322,74 +579,127 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
   }
 }
 
-class _MapPickerPage extends StatefulWidget {
-  const _MapPickerPage({this.initialLocation});
-  final LatLng? initialLocation;
+class _PinnedLocationResult {
+  _PinnedLocationResult({required this.latitude, required this.longitude});
 
-  @override
-  State<_MapPickerPage> createState() => _MapPickerPageState();
+  final double latitude;
+  final double longitude;
 }
 
-class _MapPickerPageState extends State<_MapPickerPage> {
-  static const LatLng _defaultLocation = LatLng(37.7749, -122.4194); // San Francisco fallback
+class _RequestMoneyLocationPickerSheet extends StatefulWidget {
+  const _RequestMoneyLocationPickerSheet({required this.initialCenter});
 
-  late LatLng _markerPosition;
+  final LatLng initialCenter;
+
+  @override
+  State<_RequestMoneyLocationPickerSheet> createState() =>
+      _RequestMoneyLocationPickerSheetState();
+}
+
+class _RequestMoneyLocationPickerSheetState
+    extends State<_RequestMoneyLocationPickerSheet> {
+  late LatLng _cameraTarget;
+  LatLng? _selectedPoint;
 
   @override
   void initState() {
     super.initState();
-    _markerPosition = widget.initialLocation ?? _defaultLocation;
+    _cameraTarget = widget.initialCenter;
+    _selectedPoint = widget.initialCenter;
+  }
+
+  void _pinAtCenter() {
+    setState(() {
+      _selectedPoint = _cameraTarget;
+    });
+  }
+
+  void _confirmPick() {
+    final selectedPoint = _selectedPoint;
+    if (selectedPoint == null) return;
+
+    Navigator.pop(
+      context,
+      _PinnedLocationResult(
+        latitude: selectedPoint.latitude,
+        longitude: selectedPoint.longitude,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pin Location'),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _markerPosition),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _markerPosition,
-              zoom: 14,
+    final canConfirm = _selectedPoint != null;
+    final height = MediaQuery.of(context).size.height * 0.75;
+
+    return SizedBox(
+      height: height,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Pin Location',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            markers: {
-              Marker(
-                markerId: const MarkerId('pinned'),
-                position: _markerPosition,
-                draggable: true,
-                onDragEnd: (pos) => setState(() => _markerPosition = pos),
-              ),
-            },
-            onTap: (pos) => setState(() => _markerPosition = pos),
-          ),
-          // Hint banner
-          Positioned(
-            top: 12,
-            left: 16,
-            right: 16,
-            child: Material(
-              elevation: 2,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Text(
-                  'Tap on the map or drag the marker to set location',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 6),
+            const Text(
+              'GPS is used as the starting pin. Move/adjust the pin, then confirm.',
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: widget.initialCenter,
+                    zoom: 15,
+                  ),
+                  onTap: (point) => setState(() => _selectedPoint = point),
+                  onCameraMove: (cameraPosition) {
+                    _cameraTarget = cameraPosition.target;
+                  },
+                  markers: <Marker>{
+                    if (_selectedPoint != null)
+                      Marker(
+                        markerId: const MarkerId(
+                          'request-money-pinned-location',
+                        ),
+                        position: _selectedPoint!,
+                        draggable: true,
+                        onDragEnd: (point) =>
+                            setState(() => _selectedPoint = point),
+                      ),
+                  },
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _pinAtCenter,
+                  icon: const Icon(Icons.add_location_alt_outlined),
+                  label: const Text('Pin center'),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: canConfirm ? _confirmPick : null,
+                  child: const Text('Confirm pin'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
