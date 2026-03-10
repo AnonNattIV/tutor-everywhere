@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
+import 'package:tutoreverywhere_frontend/models/admins/requiredverifications.dart';
 import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/appointment.dart';
@@ -62,6 +63,9 @@ abstract class RestClient {
   @PATCH("/tutors/promptpay-picture")
   Future<void> uploadTutorPromptPayPicture(@Header("Authorization") String jwtToken, @Part(name: "promptPayPicture") File promptPayPicture);
 
+  @PATCH("/tutors/verification-picture")
+  Future<void> uploadTutorVerificationPicture(@Header("Authorization") String jwtToken, @Part(name: "verificationPicture") File verificationPicture);
+
   // Tutors: Subjects
   @GET("/tutors/subjects/{userId}")
   Future<List<TutorSubject>> getTutorSubjectsByTutorId(@Path("userId") String tutorId);
@@ -100,4 +104,8 @@ abstract class RestClient {
   // Chat Accept
   @POST("/chat/accept")
   Future<void> acceptPromptPay(@Header("Authorization") String jwtToken, @Field("message_id") messageId);
+
+  // Admin
+  @GET("/admin/required-verifications")
+  Future<List<RequiredVerificationsResponse>> getRequiredVerifications(@Header("Authorization") String jwtToken);
 }

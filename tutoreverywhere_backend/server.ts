@@ -11,6 +11,7 @@ import tutorService from "./service/tutors.ts";
 import studentService from "./service/students.ts";
 import reviewService from "./service/reviews.ts";
 import chatService from "./service/chat.ts";
+import adminService from "./service/admin.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ app.use("/tutors", tutorService);
 app.use("/students", studentService);
 app.use("/reviews", reviewService);
 app.use("/chat", chatService);
+app.use('/admin', adminService);
 
 app.get("/", (req, res) => {
   res.send("Hello World");

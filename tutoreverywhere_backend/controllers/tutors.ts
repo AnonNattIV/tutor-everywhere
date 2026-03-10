@@ -59,6 +59,18 @@ async function updateTutorPromptPayPicture(userId: string, promptPayPicture: str
   }
 }
 
+async function updateTutorVerificationPhoto(userId: string, verificationPicture: string) {
+  try {
+    await sql`
+      update tutors
+      set verification_picture = ${verificationPicture}
+      where user_uuid = ${userId}
+    `
+  } catch (err) {
+    console.error("Update Tutor Verification Picture Error");
+    throw err;
+  }
+}
 
 async function updateTutorBio(userId: string, bio: string) {
   try {
@@ -215,4 +227,5 @@ async function findTutor(subject?: string, province?: string, location?: string,
 
 export { viewTutorData, updateTutorBio, updateTutorPreferredPlace, getTutorSubjects,
   addTutorSubject, updateTutorSubjectPrice, deleteTutorSubject, findTutor, updateTutorLocation,
-  updateTutorProfilePicture, updateTutorPromptPayPicture, getPromptPayPictureByTutorId }
+  updateTutorProfilePicture, updateTutorPromptPayPicture, getPromptPayPictureByTutorId,
+  updateTutorVerificationPhoto }

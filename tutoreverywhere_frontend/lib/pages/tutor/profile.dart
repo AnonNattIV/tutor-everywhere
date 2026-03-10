@@ -67,6 +67,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   static const String _baseUrl = AppConstants.baseUrl;
 
   bool _isUploadingPromptPay = false;
+  bool _isUploadingVerification = false;
 
   @override
   void initState() {
@@ -87,6 +88,44 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       LogInterceptor(requestBody: true, responseBody: true, error: true),
     );
     _client = RestClient(_dio, baseUrl: _baseUrl);
+  }
+
+  Future<void> _pickAndUploadVerificationImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+    if (pickedFile == null) return;
+
+    setState(() => _isUploadingVerification = true);
+
+    try {
+      final token = context.read<AuthProvider>().token;
+      if (token == null) throw Exception('Not authenticated');
+
+      await _client.uploadTutorPromptPayPicture(token, File(pickedFile.path));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PromptPay picture updated successfully')),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingVerification = false);
+    }
   }
 
   Future<void> _pickAndUploadPromptPayImage() async {
@@ -842,9 +881,36 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                 ),
               ],
             ),
+          // Upload verification photo update
           // PromptPay Update
           if (isOwner) ...[
+            if (!verified!) ... [
               ElevatedButton.icon(
+                onPressed: _isUploadingVerification ? null : _pickAndUploadVerificationImage,
+                icon: _isUploadingVerification
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.qr_code, size: 18, color: Colors.white),
+                label: Text(
+                  _isUploadingVerification ? 'Uploading...' : 'Upload verification photo',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple.shade600,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+            ],
+            
+            ElevatedButton.icon(
               onPressed: _isUploadingPromptPay ? null : _pickAndUploadPromptPayImage,
               icon: _isUploadingPromptPay
                   ? const SizedBox(

@@ -230,6 +230,18 @@ class _SchedulePageState extends State<SchedulePage> {
             ],
             
             // Description (if available)
+            if (appointment.description != null) ... [
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  children: [
+                    Text(appointment.description!)
+                  ]
+                ),
+              )
+            ],
+
             if (appointment.latitude != null && appointment.longitude != null) ...[
               const SizedBox(height: 12),
               Row(
