@@ -5,18 +5,8 @@ import { verifyToken } from "../middleware/verify.ts";
 import formatUserSubjects from "../helpers/formatTutorSubjects.ts";
 
 import { upload } from "../middleware/multer.ts";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from 'url';
 import { getAppointmentByTutorId } from "../controllers/appointments.ts";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadDir = path.join(__dirname, '../assets/pfp');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+import { uploadImageToObjectStorage } from "../helpers/objectStorage.ts";
 
 const tutorService = express.Router();
 
@@ -73,7 +63,14 @@ tutorService.get("/promptpay-picture/:userId", async (req, res) => {
   const userId = params.userId;
   try {
     const promptPayAsset = await getPromptPayPictureByTutorId(userId)
-    const promptPayAssetLink = '/' + promptPayAsset[0].promptpay_picture;
+    const promptPayPicturePath = promptPayAsset[0]?.promptpay_picture?.toString?.() ?? "";
+    if (!promptPayPicturePath) {
+      return res.status(404).json({ message: "PromptPay picture not found" });
+    }
+
+    const promptPayAssetLink = /^https?:\/\//i.test(promptPayPicturePath)
+      ? promptPayPicturePath
+      : `/${promptPayPicturePath.replace(/^\/+/, "")}`;
     res.redirect(promptPayAssetLink);
   } catch (err) {
     res.status(500).json({message: "Error find tutor" });
@@ -103,7 +100,7 @@ tutorService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const profilePicturePath = `assets/pfp/${req.file.filename}`;
+      const profilePicturePath = await uploadImageToObjectStorage(req.file, "pfp");
       await updateTutorProfilePicture(userId, profilePicturePath);
 
       res.status(200).json({
@@ -140,8 +137,7 @@ tutorService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // technical debt brrrrrrrrrr
-      const promptPayPicturePath = `assets/pfp/${req.file.filename}`;
+      const promptPayPicturePath = await uploadImageToObjectStorage(req.file, "promptpay");
       await updateTutorPromptPayPicture(userId, promptPayPicturePath);
 
       res.status(200).json({
@@ -178,8 +174,7 @@ tutorService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // technical debt brrrrrrrrrr
-      const verificationPhotoPath = `assets/pfp/${req.file.filename}`;
+      const verificationPhotoPath = await uploadImageToObjectStorage(req.file, "verification");
       await updateTutorVerificationPhoto(userId, verificationPhotoPath);
 
       res.status(200).json({

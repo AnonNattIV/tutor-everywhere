@@ -3,18 +3,8 @@ import bodyParser from "body-parser";
 import { viewStudentData, updateStudentBio, updateStudentProfilePicture } from "../controllers/students.ts";
 import { verifyToken } from "../middleware/verify.ts";
 import { upload } from "../middleware/multer.ts";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from 'url';
 import { getAppointmentByStudentId } from "../controllers/appointments.ts";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadDir = path.join(__dirname, '../assets/pfp');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+import { uploadImageToObjectStorage } from "../helpers/objectStorage.ts";
 
 const studentService = express.Router();
 
@@ -53,7 +43,7 @@ studentService.patch(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const profilePicturePath = `assets/pfp/${req.file.filename}`;
+      const profilePicturePath = await uploadImageToObjectStorage(req.file, "pfp");
       await updateStudentProfilePicture(userId, profilePicturePath);
 
       res.status(200).json({

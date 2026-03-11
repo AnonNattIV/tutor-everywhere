@@ -59,6 +59,15 @@ PGPORT=5432
 PGDATABASE=tutorApp
 PGUSER=postgres
 PGPASSWORD=somchok
+
+# S3-compatible object storage (Railway bucket or compatible provider)
+OBJECT_STORAGE_BUCKET=your-bucket-name
+OBJECT_STORAGE_ENDPOINT=https://your-s3-endpoint
+OBJECT_STORAGE_PUBLIC_URL=https://your-public-bucket-base-url
+OBJECT_STORAGE_ACCESS_KEY_ID=your-access-key
+OBJECT_STORAGE_SECRET_ACCESS_KEY=your-secret-key
+OBJECT_STORAGE_REGION=auto
+OBJECT_STORAGE_FORCE_PATH_STYLE=true
 ```
 
 **In exampleDB, password for teststudent, testtutor, and testadmin are 123456**
