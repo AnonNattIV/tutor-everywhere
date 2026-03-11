@@ -64,9 +64,8 @@ class _ChatPageState extends State<ChatPage> {
         : initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
 
-    // Default behavior: show conversation list first when opening Chat tab.
-    // A specific thread opens only when an initial peer is explicitly provided.
-    _loadConversations(autoselectIfNeeded: false);
+    // Load conversation list first. Do not auto-open latest when entering chat tab.
+    _loadConversations();
     if (_activePeerUserId != null) {
       _loadMessages(_activePeerUserId!);
     }
@@ -100,10 +99,7 @@ class _ChatPageState extends State<ChatPage> {
     // Poll conversations/messages for near real-time updates without sockets.
     _pollTimer = Timer.periodic(_pollInterval, (_) {
       if (!mounted) return;
-      _loadConversations(
-        silent: true,
-        autoselectIfNeeded: _activePeerUserId == null,
-      );
+      _loadConversations(silent: true);
       final peerId = _activePeerUserId;
       if (peerId != null) {
         _loadMessages(peerId, silent: true);
@@ -300,10 +296,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Future<void> _loadConversations({
-    bool silent = false,
-    bool autoselectIfNeeded = false,
-  }) async {
+  Future<void> _loadConversations({bool silent = false}) async {
     if (!silent && mounted) {
       setState(() => _isLoadingConversations = true);
     }
@@ -334,6 +327,14 @@ class _ChatPageState extends State<ChatPage> {
           .whereType<Map<String, dynamic>>()
           .map(_ConversationPreview.fromJson)
           .toList();
+      parsed.sort((a, b) {
+        final left = a.createdAt;
+        final right = b.createdAt;
+        if (left == null && right == null) return 0;
+        if (left == null) return 1;
+        if (right == null) return -1;
+        return right.compareTo(left);
+      });
 
       if (!mounted) return;
       setState(() {
@@ -341,7 +342,6 @@ class _ChatPageState extends State<ChatPage> {
         _isLoadingConversations = false;
       });
 
-      var shouldAutoselectLatest = autoselectIfNeeded;
       if (_activePeerUserId != null) {
         final matches = parsed.where((c) => c.partnerId == _activePeerUserId);
         final match = matches.isEmpty ? null : matches.first;
@@ -349,25 +349,6 @@ class _ChatPageState extends State<ChatPage> {
           setState(() {
             _activePeerDisplayName = _displayNameForConversation(match);
           });
-        } else if (match == null && mounted && parsed.isNotEmpty) {
-          // Active thread no longer exists; fall back to latest conversation.
-          setState(() {
-            _activePeerUserId = null;
-            _activePeerDisplayName = '';
-          });
-          shouldAutoselectLatest = true;
-        }
-      } else if (parsed.isNotEmpty) {
-        shouldAutoselectLatest = autoselectIfNeeded;
-      }
-
-      if (shouldAutoselectLatest && parsed.isNotEmpty) {
-        final first = parsed.first;
-        if (_activePeerUserId != first.partnerId) {
-          _openConversation(
-            first.partnerId,
-            _displayNameForConversation(first),
-          );
         }
       }
     } catch (e) {
@@ -411,6 +392,14 @@ class _ChatPageState extends State<ChatPage> {
           .whereType<Map<String, dynamic>>()
           .map(_ChatMessage.fromJson)
           .toList();
+      parsed.sort((a, b) {
+        final left = a.createdAt;
+        final right = b.createdAt;
+        if (left == null && right == null) return 0;
+        if (left == null) return -1;
+        if (right == null) return 1;
+        return left.compareTo(right);
+      });
 
       if (!mounted) return;
       setState(() {
@@ -656,6 +645,7 @@ class _ChatPageState extends State<ChatPage> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: false,
       builder: (_) => _LocationPickerSheet(initialCenter: initialCenter),
     );
 
@@ -700,8 +690,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () =>
-          _loadConversations(autoselectIfNeeded: _activePeerUserId == null),
+      onRefresh: _loadConversations,
       child: ListView.separated(
         itemCount: _conversations.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
@@ -1407,8 +1396,10 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     text: 'Pinned location',
   );
 
+  GoogleMapController? _mapController;
   late LatLng _cameraTarget;
   LatLng? _selectedPoint;
+  double _zoomLevel = 15;
 
   @override
   void initState() {
@@ -1419,6 +1410,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
 
   @override
   void dispose() {
+    _mapController?.dispose();
     _labelController.dispose();
     super.dispose();
   }
@@ -1428,6 +1420,15 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     setState(() {
       _selectedPoint = _cameraTarget;
     });
+  }
+
+  Future<void> _focusSelectedPoint() async {
+    final mapController = _mapController;
+    final selectedPoint = _selectedPoint;
+    if (mapController == null || selectedPoint == null) return;
+    await mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(selectedPoint, _zoomLevel),
+    );
   }
 
   void _confirmSend() {
@@ -1452,7 +1453,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   Widget build(BuildContext context) {
     final canSend = _selectedPoint != null;
     final mediaQuery = MediaQuery.of(context);
-    final height = mediaQuery.size.height * 0.75;
+    final height = mediaQuery.size.height * 0.8;
     final bottomInset = mediaQuery.viewPadding.bottom;
 
     return SizedBox(
@@ -1479,9 +1480,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                     target: widget.initialCenter,
                     zoom: 15,
                   ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
                   onTap: (point) => setState(() => _selectedPoint = point),
                   onCameraMove: (cameraPosition) {
                     _cameraTarget = cameraPosition.target;
+                    _zoomLevel = cameraPosition.zoom;
                   },
                   markers: <Marker>{
                     if (_selectedPoint != null)
@@ -1496,28 +1501,37 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
                   mapToolbarEnabled: false,
+                  compassEnabled: true,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                  rotateGesturesEnabled: true,
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
                   onPressed: _pinAtCenter,
                   icon: const Icon(Icons.add_location_alt_outlined),
                   label: const Text('Pin center'),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _labelController,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      hintText: 'Optional label',
-                    ),
-                  ),
+                OutlinedButton.icon(
+                  onPressed: _focusSelectedPoint,
+                  icon: const Icon(Icons.center_focus_strong),
+                  label: const Text('Focus pin'),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _labelController,
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'Optional label',
+              ),
             ),
             const SizedBox(height: 8),
             Row(
