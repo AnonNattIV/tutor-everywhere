@@ -107,9 +107,11 @@ tutorService.patch(
         message: "Successfully updated profile picture",
         profilePicture: profilePicturePath
       });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error uploading profile picture" });
+    } catch (err: any) {
+      console.error("Error uploading profile picture", err);
+      res
+        .status(500)
+        .json({ message: err?.message || "Error uploading profile picture" });
     }
   }
 );
@@ -144,9 +146,11 @@ tutorService.patch(
         message: "Successfully updated prompt pay picture",
         profilePicture: promptPayPicturePath
       });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error uploading prompt pay picture" });
+    } catch (err: any) {
+      console.error("Error uploading prompt pay picture", err);
+      res.status(500).json({
+        message: err?.message || "Error uploading prompt pay picture",
+      });
     }
   }
 );
@@ -181,9 +185,11 @@ tutorService.patch(
         message: "Successfully updated prompt pay picture",
         profilePicture: verificationPhotoPath
       });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error uploading prompt pay picture" });
+    } catch (err: any) {
+      console.error("Error uploading verification picture", err);
+      res.status(500).json({
+        message: err?.message || "Error uploading verification picture",
+      });
     }
   }
 );

@@ -95,7 +95,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   void initState() {
     super.initState();
     final dio = Dio(BaseOptions(contentType: Headers.jsonContentType));
-    _restClient = RestClient(dio, baseUrl: AppConstants.baseUrl);
+    _restClient = RestClient(dio, baseUrl: AppConstants.normalizedBaseUrl);
   }
 
   @override

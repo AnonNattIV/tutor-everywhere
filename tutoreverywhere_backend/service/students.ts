@@ -50,9 +50,11 @@ studentService.patch(
         message: "Successfully updated profile picture",
         profilePicture: profilePicturePath
       });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error uploading profile picture" });
+    } catch (err: any) {
+      console.error("Error uploading profile picture", err);
+      res
+        .status(500)
+        .json({ message: err?.message || "Error uploading profile picture" });
     }
   }
 );

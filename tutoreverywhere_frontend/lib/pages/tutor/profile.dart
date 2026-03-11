@@ -70,6 +70,20 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   bool _isUploadingPromptPay = false;
   bool _isUploadingVerification = false;
 
+  String _dioErrorMessage(DioException e, {String fallback = 'Update failed'}) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final message = data['message'] ?? data['error'];
+      if (message != null && message.toString().trim().isNotEmpty) {
+        return message.toString();
+      }
+    }
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+    return fallback;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -121,9 +135,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
-          ),
+          content: Text('Error: ${_dioErrorMessage(e)}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -165,9 +177,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
-          ),
+          content: Text('Error: ${_dioErrorMessage(e)}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -448,9 +458,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       });
 
       String errorMessage = 'Failed to upload image';
-      if (e.response?.data != null) {
-        errorMessage = e.response?.data['message'] ?? errorMessage;
-      }
+      errorMessage = _dioErrorMessage(e, fallback: errorMessage);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

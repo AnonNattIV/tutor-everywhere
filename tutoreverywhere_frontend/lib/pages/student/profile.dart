@@ -45,6 +45,23 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   late final RestClient _client;
   static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
+  String _dioErrorMessage(
+    DioException e, {
+    String fallback = 'Failed to upload image',
+  }) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final message = data['message'] ?? data['error'];
+      if (message != null && message.toString().trim().isNotEmpty) {
+        return message.toString();
+      }
+    }
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+    return fallback;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -163,9 +180,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       });
 
       String errorMessage = 'Failed to upload image';
-      if (e.response?.data != null) {
-        errorMessage = e.response?.data['message'] ?? errorMessage;
-      }
+      errorMessage = _dioErrorMessage(e, fallback: errorMessage);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

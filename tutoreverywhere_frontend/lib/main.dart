@@ -26,7 +26,7 @@ void main() async {
 
 final dio = Dio();
 // Keep a single Retrofit client configured from AppConstants.
-final client = RestClient(dio, baseUrl: AppConstants.baseUrl);
+final client = RestClient(dio, baseUrl: AppConstants.normalizedBaseUrl);
 const Color mainColor = Color(0xFF1DA1F2);
 
 class MyApp extends StatelessWidget {

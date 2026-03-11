@@ -24,7 +24,7 @@ class _AdminSupportUsersPageState extends State<AdminSupportUsersPage> {
     // Dedicated client for admin support endpoints.
     _dio = Dio(
       BaseOptions(
-        baseUrl: AppConstants.baseUrl,
+        baseUrl: AppConstants.normalizedBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         validateStatus: (status) => status != null,
@@ -196,7 +196,7 @@ class _AdminSupportUserTicketsPageState
     // Recreate client per page to keep lifecycle straightforward.
     _dio = Dio(
       BaseOptions(
-        baseUrl: AppConstants.baseUrl,
+        baseUrl: AppConstants.normalizedBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         validateStatus: (status) => status != null,

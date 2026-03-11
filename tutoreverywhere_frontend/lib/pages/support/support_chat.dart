@@ -42,7 +42,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
     super.initState();
     _dio = Dio(
       BaseOptions(
-        baseUrl: AppConstants.baseUrl,
+        baseUrl: AppConstants.normalizedBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         validateStatus: (status) => status != null,

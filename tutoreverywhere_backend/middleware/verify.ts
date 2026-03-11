@@ -3,18 +3,35 @@ import jwt from "jsonwebtoken";
 
 let secretKey = process.env.AUTH_SECRET_KEY || "defaultKey";
 
+function extractToken(authHeader?: string) {
+  if (!authHeader) return "";
+
+  const trimmedHeader = authHeader.trim();
+  if (!trimmedHeader) return "";
+
+  if (/^bearer\s+/i.test(trimmedHeader)) {
+    return trimmedHeader.replace(/^bearer\s+/i, "").trim();
+  }
+
+  return trimmedHeader;
+}
+
 const verifyToken = function (req: any, res: any, next: any) {
-  let getToken = req.header("Authorization")!.split(" ")[0];
-  if (!getToken) return;
+  const authHeader = req.header("Authorization") || req.header("authorization");
+  const token = extractToken(authHeader);
+
+  if (!token) {
+    return res.status(401).json({ message: "Missing authorization token" });
+  }
 
   try {
-    const token = jwt.verify(getToken, secretKey);
+    const verifiedPayload = jwt.verify(token, secretKey);
     if (!req.body) req.body = {};
-    req.body.authData = token;
-    next();
+    req.body.authData = verifiedPayload;
+    return next();
   } catch (err) {
     console.error(err);
-    return false;
+    return res.status(401).json({ message: "Invalid or expired authorization token" });
   }
 };
 

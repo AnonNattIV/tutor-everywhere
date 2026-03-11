@@ -16,7 +16,7 @@ class IdVerifyUserPage extends StatefulWidget {
 }
 
 class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
-  final _baseUrl = AppConstants.baseUrl;
+  final _baseUrl = AppConstants.normalizedBaseUrl;
   late final Dio _dio;
   late final RestClient _client;
 

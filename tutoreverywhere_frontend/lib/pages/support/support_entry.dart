@@ -25,7 +25,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
     // Local Dio instance keeps support APIs isolated and easy to configure.
     _dio = Dio(
       BaseOptions(
-        baseUrl: AppConstants.baseUrl,
+        baseUrl: AppConstants.normalizedBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         validateStatus: (status) => status != null,
