@@ -41,7 +41,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 Use your Railway URL for real-device/cloud testing:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://tutor-everywhere-production.up.railway.app
+flutter run --dart-define=API_BASE_URL=https://your-backend-domain.example.com
 ```
 
 ## Docker (Backend)
@@ -138,7 +138,7 @@ Chat is handled with direct Dio calls in `pages/all/chat.dart` and `pages/tutor/
 From `tutoreverywhere_frontend`:
 
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=https://tutor-everywhere-production.up.railway.app
+flutter build apk --release --dart-define=API_BASE_URL=https://your-backend-domain.example.com
 ```
 
 Output:
