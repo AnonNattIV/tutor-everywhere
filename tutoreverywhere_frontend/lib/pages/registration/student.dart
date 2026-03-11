@@ -6,7 +6,7 @@ import '../../service/api.dart';
 import 'package:dio/dio.dart';
 
 class StudentRegister extends StatefulWidget {
-  StudentRegister({super.key});
+  const StudentRegister({super.key});
 
   @override
   State<StudentRegister> createState() => _StudentRegisterState();
@@ -23,6 +23,7 @@ class _StudentRegisterState extends State<StudentRegister> {
 
   late final RestClient _restClient;
 
+  // Opens the native date picker and stores the selected birth date.
   Future<void> _selectDate() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -33,6 +34,7 @@ class _StudentRegisterState extends State<StudentRegister> {
     if (pickedDate != null) setState(() => selectedDate = pickedDate);
   }
 
+  // Validates form input and sends student registration to backend.
   Future<void> _register() async {
     try {
       if (!_formKey.currentState!.validate() ||
@@ -53,6 +55,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         gender: selectedGender!,
       );
 
+      // API call: create student account.
       await _restClient.registerStudent(student);
 
       if (!mounted) return;
@@ -94,6 +97,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   @override
   void initState() {
     super.initState();
+    // Initialize REST client once for this screen.
     final dio = Dio(BaseOptions(contentType: Headers.jsonContentType));
     _restClient = RestClient(dio, baseUrl: AppConstants.normalizedBaseUrl);
   }
