@@ -8,9 +8,7 @@ class RegisterHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Account Registration"), centerTitle: true,
-      ),
+      appBar: AppBar(title: Text("Account Registration"), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -18,30 +16,40 @@ class RegisterHomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text("Select your role", style: TextStyle(fontSize: 24)),
-            
+
             Card(
-              child:
-                  ListTile(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StudentRegister())),
-                    leading: Icon(Icons.person),
-                    title: Text("Student"),
-                    subtitle: Text("Find tutors and study"),
+              child: ListTile(
+                // Route to student registration flow.
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const StudentRegister(),
                   ),
+                ),
+                leading: Icon(Icons.person),
+                title: Text("Student"),
+                subtitle: Text("Find tutors and study"),
               ),
-              
+            ),
+
             SizedBox(height: 16),
             Card(
-              child:
-                ListTile(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TutorRegister())),
-                  leading: Icon(Icons.person),
-                  title: Text("Tutor"),
-                  subtitle: Text("Teach students to earn money"),
-              )
-            )
-            ]
-          )
+              child: ListTile(
+                // Route to tutor registration flow.
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TutorRegister(),
+                  ),
+                ),
+                leading: Icon(Icons.person),
+                title: Text("Tutor"),
+                subtitle: Text("Teach students to earn money"),
+              ),
+            ),
+          ],
         ),
+      ),
     );
   }
 }

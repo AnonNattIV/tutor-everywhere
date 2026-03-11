@@ -8,7 +8,7 @@ import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
 class IdVerifyUserPage extends StatefulWidget {
-  IdVerifyUserPage({super.key, required this.userId});
+  const IdVerifyUserPage({super.key, required this.userId});
   final String userId;
 
   @override
@@ -27,10 +27,12 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
   @override
   void initState() {
     super.initState();
+    // Build API client and load current tutor verification profile.
     _setupDio();
     _fetchTutorData();
   }
 
+  // Creates a scoped Dio/Retrofit client for admin verification APIs.
   void _setupDio() {
     _dio = Dio(
       BaseOptions(
@@ -46,6 +48,7 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
+  // API call: fetch tutor profile and verification photo for review.
   Future<void> _fetchTutorData() async {
     try {
       final tutor = await _client.getTutorDataById(widget.userId);
@@ -89,8 +92,9 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
   @override
   Widget build(BuildContext context) {
     final token = context.read<AuthProvider>().token;
-    Future<void> _acceptVerification() async {
+    Future<void> acceptVerification() async {
       try {
+        // API call: mark tutor verification as accepted.
         await _client.acceptVerification(token!, widget.userId);
         if (!mounted) return;
         setState(() {
@@ -114,8 +118,9 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
       }
     }
 
-    Future<void> _denyVerification() async {
+    Future<void> denyVerification() async {
       try {
+        // API call: mark tutor verification as denied.
         await _client.denyVerification(token!, widget.userId);
         if (!mounted) return;
         setState(() {
@@ -142,6 +147,12 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
     const loadingBody = Center(child: CircularProgressIndicator());
     final appBar = AppBar(title: Text("User ID Verification"));
     if (_isLoading) return Scaffold(appBar: appBar, body: loadingBody);
+    if (_errorMessage != null && _tutor == null) {
+      return Scaffold(
+        appBar: appBar,
+        body: Center(child: Text(_errorMessage!)),
+      );
+    }
     final firstName = _tutor?.firstname.trim() ?? 'Teacher';
     final lastName = _tutor?.lastname.trim() ?? 'Name';
     final fullName = '$firstName $lastName'.trim();
@@ -236,7 +247,7 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _acceptVerification,
+                    onPressed: acceptVerification,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Accept'),
                     style: ElevatedButton.styleFrom(
@@ -252,7 +263,7 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _denyVerification,
+                    onPressed: denyVerification,
                     icon: const Icon(Icons.cancel_outlined),
                     label: const Text('Deny'),
                     style: ElevatedButton.styleFrom(
