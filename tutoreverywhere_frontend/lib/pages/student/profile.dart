@@ -557,26 +557,28 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               ),
             ),
           ),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Account',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+          if (isOwner) ... [
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Account',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                _buildMenuItem(Icons.history, 'Schedule'),
-              ],
+                  const SizedBox(height: 10),
+                  _buildMenuItem(Icons.history, 'Schedule'),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
+            const SizedBox(height: 30),
+          ]
         ],
       ),
     );
