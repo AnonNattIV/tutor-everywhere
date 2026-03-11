@@ -24,6 +24,7 @@ class SupportChatPage extends StatefulWidget {
 }
 
 class _SupportChatPageState extends State<SupportChatPage> {
+  // Polling keeps admin/user replies fresh without sockets.
   static const Duration _pollInterval = Duration(seconds: 4);
 
   late final Dio _dio;
@@ -47,6 +48,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
         validateStatus: (status) => status != null,
       ),
     );
+    // Initial load for ticket metadata + message timeline.
     _loadThread();
     _startPolling();
   }
@@ -61,6 +63,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
   }
 
   Options _authOptions() {
+    // Use persisted JWT so every endpoint passes verifyToken.
     final token = context.read<AuthProvider>().token ?? '';
     return Options(headers: <String, dynamic>{'Authorization': token});
   }
@@ -76,6 +79,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(_pollInterval, (_) {
       if (!mounted) return;
+      // Silent refresh avoids loading flicker while reading chat.
       _loadThread(silent: true);
     });
   }
@@ -141,6 +145,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
 
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+    // Archived tickets are read-only for both sides.
     if (_ticket?.isArchived == true) return;
 
     setState(() => _isSending = true);
@@ -160,6 +165,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
       }
 
       _messageController.clear();
+      // Refresh after sending so timestamps/order stay consistent with server.
       await _loadThread(silent: true);
     } catch (e) {
       _showSnack('Error sending support message: $e');
@@ -213,6 +219,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
       }
 
       _showSnack('Support chat archived');
+      // Pull latest ticket state so input is disabled immediately.
       await _loadThread(silent: true);
     } catch (e) {
       _showSnack('Error archiving support chat: $e');
@@ -252,6 +259,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
 
   Widget _buildMessageBubble(SupportMessage message) {
     final currentUserId = context.read<AuthProvider>().userId;
+    // Bubble alignment/color distinguishes sender locally.
     final isMine = currentUserId != null && currentUserId == message.senderId;
     final bubbleColor = isMine
         ? Colors.deepPurple.shade100

@@ -22,6 +22,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
   @override
   void initState() {
     super.initState();
+    // Local Dio instance keeps support APIs isolated and easy to configure.
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.baseUrl,
@@ -40,6 +41,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
   }
 
   Options _authOptions() {
+    // Backend expects the JWT in Authorization for verifyToken middleware.
     final token = context.read<AuthProvider>().token ?? '';
     return Options(headers: <String, dynamic>{'Authorization': token});
   }
@@ -55,6 +57,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
     if (mounted) setState(() => _isLoading = true);
 
     try {
+      // Load this user's full support ticket history for the list section.
       final response = await _dio.get<dynamic>(
         'support/tickets/mine',
         options: _authOptions(),
@@ -87,6 +90,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
     setState(() => _isStarting = true);
 
     try {
+      // Endpoint returns the existing open ticket or creates a new one.
       final response = await _dio.post<dynamic>(
         'support/tickets/start',
         options: _authOptions(),
@@ -110,6 +114,7 @@ class _SupportEntryPageState extends State<SupportEntryPage> {
 
       final ticket = SupportTicket.fromJson(ticketRaw);
       if (!mounted) return;
+      // Open the chat thread directly, then refresh list on return.
       await Navigator.push(
         context,
         MaterialPageRoute<void>(

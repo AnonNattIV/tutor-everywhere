@@ -5,6 +5,7 @@ type SupportTicketStatus = "open" | "archived";
 
 async function ensureSupportTables() {
   try {
+    // Idempotent bootstrap so service can start on a fresh database.
     await sql`
       create table if not exists support_tickets (
         ticket_id uuid primary key,
@@ -51,6 +52,7 @@ async function ensureSupportTables() {
 
 async function getDefaultAdminId() {
   try {
+    // Assign new tickets to the first available admin account.
     const [row] = await sql`
       select user_uuid
       from users
@@ -117,6 +119,7 @@ async function getOpenSupportTicketForUser(userId: string) {
 }
 
 async function getOrCreateOpenSupportTicketForUser(userId: string) {
+  // Keep at most one active support thread per user.
   const openTicket = await getOpenSupportTicketForUser(userId);
   if (openTicket) return { ticket: openTicket, created: false as const };
 
@@ -244,6 +247,7 @@ async function sendSupportMessage(
         created_at
     `;
 
+    // Touch ticket timestamp so admin lists can sort by latest activity.
     await sql`
       update support_tickets
       set updated_at = now()
@@ -365,4 +369,3 @@ export {
   listSupportUsersForAdmin,
   listSupportTicketsByUserForAdmin,
 };
-

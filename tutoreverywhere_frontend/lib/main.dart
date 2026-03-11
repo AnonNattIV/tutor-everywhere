@@ -16,6 +16,7 @@ import './service/api.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Restore persisted auth state before deciding which home flow to show.
   final authProvider = AuthProvider();
   await authProvider.checkAuth();
   runApp(
@@ -24,6 +25,7 @@ void main() async {
 }
 
 final dio = Dio();
+// Keep a single Retrofit client configured from AppConstants.
 final client = RestClient(dio, baseUrl: AppConstants.baseUrl);
 const Color mainColor = Color(0xFF1DA1F2);
 
@@ -117,6 +119,7 @@ class _LoginPageState extends State<LoginPage> {
       var token = testResponse.data.token;
       var jwtData = JWT.decode(token);
       if (token != null) {
+        // Save token + role in provider so other screens can authorize requests.
         await context.read<AuthProvider>().login(
           token,
           jwtData.payload['userId'],
@@ -128,6 +131,7 @@ class _LoginPageState extends State<LoginPage> {
       print(jwtData.payload['userId']);
       print(jwtData.payload['iat']);
       print(jwtData.payload['exp']);
+      // Route to role-specific home immediately after successful login.
       switch (jwtData.payload['role']) {
         case "student":
           Navigator.pushAndRemoveUntil(

@@ -18,11 +18,13 @@ const supportService = express.Router();
 
 supportService.use(bodyParser.json());
 
+// Safe to call repeatedly because schema setup uses IF NOT EXISTS.
 ensureSupportTables().catch((err) => {
   console.error("Support table initialization failed", err);
 });
 
 function getAuthenticatedUserId(req: any) {
+  // verifyToken stores decoded JWT data in req.body.authData.
   const authData = req.body?.authData;
   return authData?.userId?.toString?.() ?? null;
 }
@@ -41,6 +43,7 @@ async function ensureTicketAccess(
   role: string,
   ticketId: string,
 ) {
+  // Admin can access all tickets; student/tutor can only access own ticket.
   const ticket = await getSupportTicketById(ticketId);
   if (!ticket) {
     return {
@@ -77,6 +80,7 @@ supportService.post("/tickets/start", verifyToken, async (req: any, res) => {
   }
 
   try {
+    // Reuse existing open ticket to avoid duplicate support threads per user.
     const { ticket, created } = await getOrCreateOpenSupportTicketForUser(userId);
     const ticketId = ticket.ticket_id?.toString?.() ?? "";
     const details = ticketId ? await getSupportTicketDetails(ticketId) : null;
@@ -152,6 +156,7 @@ supportService.post("/tickets/:ticketId/messages", verifyToken, async (req: any,
       return res.status(access.status).json(access.body);
     }
 
+    // Archived thread is immutable for both admin and user.
     const status = access.ticket.status?.toString?.() ?? "";
     if (status === "archived") {
       return res.status(400).json({ message: "This support ticket is archived" });
@@ -204,6 +209,7 @@ supportService.get("/admin/users", verifyToken, async (req: any, res) => {
   }
 
   if (role !== "admin") {
+    // Admin-only analytics/queue endpoint.
     return res.status(403).json({ message: "Admin only" });
   }
 
@@ -241,4 +247,3 @@ supportService.get("/admin/users/:userId/tickets", verifyToken, async (req: any,
 });
 
 export default supportService;
-

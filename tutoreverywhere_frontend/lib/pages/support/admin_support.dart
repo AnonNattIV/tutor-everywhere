@@ -21,6 +21,7 @@ class _AdminSupportUsersPageState extends State<AdminSupportUsersPage> {
   @override
   void initState() {
     super.initState();
+    // Dedicated client for admin support endpoints.
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.baseUrl,
@@ -39,6 +40,7 @@ class _AdminSupportUsersPageState extends State<AdminSupportUsersPage> {
   }
 
   Options _authOptions() {
+    // Admin JWT is required for /support/admin/* routes.
     final token = context.read<AuthProvider>().token ?? '';
     return Options(headers: <String, dynamic>{'Authorization': token});
   }
@@ -53,6 +55,7 @@ class _AdminSupportUsersPageState extends State<AdminSupportUsersPage> {
   Future<void> _loadUsers() async {
     if (mounted) setState(() => _isLoading = true);
     try {
+      // Backend aggregates each user with latest/open-ticket metadata.
       final response = await _dio.get<dynamic>(
         'support/admin/users',
         options: _authOptions(),
@@ -190,6 +193,7 @@ class _AdminSupportUserTicketsPageState
   @override
   void initState() {
     super.initState();
+    // Recreate client per page to keep lifecycle straightforward.
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.baseUrl,
@@ -208,6 +212,7 @@ class _AdminSupportUserTicketsPageState
   }
 
   Options _authOptions() {
+    // Same auth header shape used across support pages.
     final token = context.read<AuthProvider>().token ?? '';
     return Options(headers: <String, dynamic>{'Authorization': token});
   }
@@ -222,6 +227,7 @@ class _AdminSupportUserTicketsPageState
   Future<void> _loadTickets() async {
     if (mounted) setState(() => _isLoading = true);
     try {
+      // Load all tickets for a selected user so admin can open any thread.
       final response = await _dio.get<dynamic>(
         'support/admin/users/${widget.userId}/tickets',
         options: _authOptions(),
@@ -290,6 +296,7 @@ class _AdminSupportUserTicketsPageState
                             : Colors.green.shade100,
                       ),
                       onTap: () async {
+                        // Reuse shared SupportChatPage for admin-side chat view.
                         await Navigator.push(
                           context,
                           MaterialPageRoute<void>(
