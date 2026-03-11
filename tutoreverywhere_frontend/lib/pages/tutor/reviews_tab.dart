@@ -367,6 +367,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
   Widget _buildReviewCard(Review review) {
     final reviewerImage = _getProfileImage(review.reviewerProfilePicture);
     final isClickable = review.reviewer.isNotEmpty;
+    final reviewerBadge = _buildVerifiedBadge(review.reviewerVerified);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -404,35 +405,52 @@ class _ReviewsTabState extends State<ReviewsTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: isClickable
-                            ? () => _navigateToStudentProfile(review.reviewer)
-                            : null,
-                        child: MouseRegion(
-                          cursor: isClickable
-                              ? SystemMouseCursors.click
-                              : SystemMouseCursors.basic,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                review.reviewerFullName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                  color: isClickable
-                                      ? Colors.deepPurple
-                                      : Colors.black87,
-                                  decoration: isClickable
-                                      ? TextDecoration.underline
-                                      : TextDecoration.none,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: isClickable
+                                  ? () => _navigateToStudentProfile(
+                                      review.reviewer,
+                                    )
+                                  : null,
+                              child: MouseRegion(
+                                cursor: isClickable
+                                    ? SystemMouseCursors.click
+                                    : SystemMouseCursors.basic,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        review.reviewerFullName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: isClickable
+                                              ? Colors.deepPurple
+                                              : Colors.black87,
+                                          decoration: isClickable
+                                              ? TextDecoration.underline
+                                              : TextDecoration.none,
+                                        ),
+                                      ),
+                                    ),
+                                    if (reviewerBadge != null) reviewerBadge,
+                                  ],
                                 ),
                               ),
-                              _buildVerifiedBadge(review.reviewerVerified) ??
-                                  const SizedBox.shrink(),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.topRight,
+                            child: _buildRatingStars(review.rating),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -442,7 +460,6 @@ class _ReviewsTabState extends State<ReviewsTab> {
                     ],
                   ),
                 ),
-                _buildRatingStars(review.rating),
               ],
             ),
             const SizedBox(height: 12),

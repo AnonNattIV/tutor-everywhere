@@ -61,9 +61,8 @@ class _ChatPageState extends State<ChatPage> {
     _activePeerUserId = widget.initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
 
-    // Default behavior: show conversation list first when opening Chat tab.
-    // A specific thread opens only when an initial peer is explicitly provided.
-    _loadConversations(autoselectIfNeeded: false);
+    // Open the latest conversation by default when no specific peer is provided.
+    _loadConversations(autoselectIfNeeded: _activePeerUserId == null);
     if (_activePeerUserId != null) {
       _loadMessages(_activePeerUserId!);
     }
@@ -321,6 +320,14 @@ class _ChatPageState extends State<ChatPage> {
                 _ConversationPreview.fromJson(item as Map<String, dynamic>),
           )
           .toList();
+      parsed.sort((a, b) {
+        final left = a.createdAt;
+        final right = b.createdAt;
+        if (left == null && right == null) return 0;
+        if (left == null) return 1;
+        if (right == null) return -1;
+        return right.compareTo(left);
+      });
 
       if (!mounted) return;
       setState(() {
@@ -374,6 +381,14 @@ class _ChatPageState extends State<ChatPage> {
                 _ChatMessage.fromJson(item as Map<String, dynamic>),
           )
           .toList();
+      parsed.sort((a, b) {
+        final left = a.createdAt;
+        final right = b.createdAt;
+        if (left == null && right == null) return 0;
+        if (left == null) return -1;
+        if (right == null) return 1;
+        return left.compareTo(right);
+      });
 
       if (!mounted) return;
       setState(() {
@@ -613,6 +628,7 @@ class _ChatPageState extends State<ChatPage> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: false,
       builder: (_) => _LocationPickerSheet(initialCenter: initialCenter),
     );
 
@@ -1363,8 +1379,10 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     text: 'Pinned location',
   );
 
+  GoogleMapController? _mapController;
   late LatLng _cameraTarget;
   LatLng? _selectedPoint;
+  double _zoomLevel = 15;
 
   @override
   void initState() {
@@ -1375,6 +1393,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
 
   @override
   void dispose() {
+    _mapController?.dispose();
     _labelController.dispose();
     super.dispose();
   }
@@ -1384,6 +1403,15 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     setState(() {
       _selectedPoint = _cameraTarget;
     });
+  }
+
+  Future<void> _focusSelectedPoint() async {
+    final mapController = _mapController;
+    final selectedPoint = _selectedPoint;
+    if (mapController == null || selectedPoint == null) return;
+    await mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(selectedPoint, _zoomLevel),
+    );
   }
 
   void _confirmSend() {
@@ -1408,7 +1436,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   Widget build(BuildContext context) {
     final canSend = _selectedPoint != null;
     final mediaQuery = MediaQuery.of(context);
-    final height = mediaQuery.size.height * 0.75;
+    final height = mediaQuery.size.height * 0.8;
     final bottomInset = mediaQuery.viewPadding.bottom;
 
     return SizedBox(
@@ -1435,9 +1463,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                     target: widget.initialCenter,
                     zoom: 15,
                   ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
                   onTap: (point) => setState(() => _selectedPoint = point),
                   onCameraMove: (cameraPosition) {
                     _cameraTarget = cameraPosition.target;
+                    _zoomLevel = cameraPosition.zoom;
                   },
                   markers: <Marker>{
                     if (_selectedPoint != null)
@@ -1452,28 +1484,37 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
                   mapToolbarEnabled: false,
+                  compassEnabled: true,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                  rotateGesturesEnabled: true,
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
                   onPressed: _pinAtCenter,
                   icon: const Icon(Icons.add_location_alt_outlined),
                   label: const Text('Pin center'),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _labelController,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      hintText: 'Optional label',
-                    ),
-                  ),
+                OutlinedButton.icon(
+                  onPressed: _focusSelectedPoint,
+                  icon: const Icon(Icons.center_focus_strong),
+                  label: const Text('Focus pin'),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _labelController,
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'Optional label',
+              ),
             ),
             const SizedBox(height: 8),
             Row(

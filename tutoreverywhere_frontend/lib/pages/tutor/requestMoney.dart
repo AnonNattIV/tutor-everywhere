@@ -214,6 +214,7 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: false,
       builder: (_) =>
           _RequestMoneyLocationPickerSheet(initialCenter: initialCenter),
     );
@@ -358,221 +359,229 @@ class _RequestMoneyPageState extends State<RequestMoneyPage> {
         title: Text('Request money to $_activePeerDisplayName'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          spacing: 16,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: selectedSubject,
-              decoration: const InputDecoration(
-                labelText: 'Subject',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-              ),
-              items: _availableSubjects.map((subject) {
-                return DropdownMenuItem(value: subject, child: Text(subject));
-              }).toList(),
-              onChanged: (value) => setState(() => selectedSubject = value),
-            ),
-            TextField(
-              controller: _placeNameController,
-              decoration: const InputDecoration(
-                labelText: 'Place Name (optional)',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-              ),
-            ),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                alignLabelWithHint: true,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _pickStartDateTime,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Start Date',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            suffixIcon: Icon(Icons.calendar_today, size: 18),
-                          ),
-                          child: Text(
-                            _formatDate(_startDate),
-                            style: TextStyle(
-                              color: _startDate == null
-                                  ? Theme.of(context).hintColor
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: _pickEndDateTime,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'End Date',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            suffixIcon: Icon(Icons.calendar_today, size: 18),
-                          ),
-                          child: Text(
-                            _formatDate(_endDate),
-                            style: TextStyle(
-                              color: _endDate == null
-                                  ? Theme.of(context).hintColor
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: _pickStartDateTime,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Start Time',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            suffixIcon: Icon(Icons.access_time, size: 18),
-                          ),
-                          child: Text(
-                            _formatTime(_startDate),
-                            style: TextStyle(
-                              color: _startDate == null
-                                  ? Theme.of(context).hintColor
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InkWell(
-                        onTap: _pickEndDateTime,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'End Time',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            suffixIcon: Icon(Icons.access_time, size: 18),
-                          ),
-                          child: Text(
-                            _formatTime(_endDate),
-                            style: TextStyle(
-                              color: _endDate == null
-                                  ? Theme.of(context).hintColor
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            TextField(
-              controller: _priceController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Price (Baht)',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                prefixText: '฿ ',
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _openMapPicker,
-                  icon: const Icon(Icons.map_outlined),
-                  label: Text(
-                    _pinnedLocation == null
-                        ? 'Pin Location on Map'
-                        : 'Change Pinned Location',
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            24 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selectedSubject,
+                decoration: const InputDecoration(
+                  labelText: 'Subject',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
                   ),
                 ),
-                if (_pinnedLocation != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Lat: ${_pinnedLocation!.latitude.toStringAsFixed(6)},  Lng: ${_pinnedLocation!.longitude.toStringAsFixed(6)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                items: _availableSubjects.map((subject) {
+                  return DropdownMenuItem(value: subject, child: Text(subject));
+                }).toList(),
+                onChanged: (value) => setState(() => selectedSubject = value),
+              ),
+              TextField(
+                controller: _placeNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Place Name (optional)',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  alignLabelWithHint: true,
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickStartDateTime,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Start Date',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              suffixIcon: Icon(Icons.calendar_today, size: 18),
+                            ),
+                            child: Text(
+                              _formatDate(_startDate),
+                              style: TextStyle(
+                                color: _startDate == null
+                                    ? Theme.of(context).hintColor
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickEndDateTime,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'End Date',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              suffixIcon: Icon(Icons.calendar_today, size: 18),
+                            ),
+                            child: Text(
+                              _formatDate(_endDate),
+                              style: TextStyle(
+                                color: _endDate == null
+                                    ? Theme.of(context).hintColor
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickStartDateTime,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Start Time',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              suffixIcon: Icon(Icons.access_time, size: 18),
+                            ),
+                            child: Text(
+                              _formatTime(_startDate),
+                              style: TextStyle(
+                                color: _startDate == null
+                                    ? Theme.of(context).hintColor
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickEndDateTime,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'End Time',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              suffixIcon: Icon(Icons.access_time, size: 18),
+                            ),
+                            child: Text(
+                              _formatTime(_endDate),
+                              style: TextStyle(
+                                color: _endDate == null
+                                    ? Theme.of(context).hintColor
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ],
-            ),
-            const Spacer(),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submitRequestMoney,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
               ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      _isEditMode ? 'Update Request' : 'Send Request',
-                      style: const TextStyle(fontSize: 16),
+              TextField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'Price (Baht)',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  prefixText: 'THB ',
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _openMapPicker,
+                    icon: const Icon(Icons.map_outlined),
+                    label: Text(
+                      _pinnedLocation == null
+                          ? 'Pin Location on Map'
+                          : 'Change Pinned Location',
                     ),
-            ),
-          ],
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                  ),
+                  if (_pinnedLocation != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Lat: ${_pinnedLocation!.latitude.toStringAsFixed(6)},  Lng: ${_pinnedLocation!.longitude.toStringAsFixed(6)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submitRequestMoney,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        _isEditMode ? 'Update Request' : 'Send Request',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -598,8 +607,10 @@ class _RequestMoneyLocationPickerSheet extends StatefulWidget {
 
 class _RequestMoneyLocationPickerSheetState
     extends State<_RequestMoneyLocationPickerSheet> {
+  GoogleMapController? _mapController;
   late LatLng _cameraTarget;
   LatLng? _selectedPoint;
+  double _zoomLevel = 15;
 
   @override
   void initState() {
@@ -612,6 +623,15 @@ class _RequestMoneyLocationPickerSheetState
     setState(() {
       _selectedPoint = _cameraTarget;
     });
+  }
+
+  Future<void> _focusSelectedPoint() async {
+    final mapController = _mapController;
+    final selectedPoint = _selectedPoint;
+    if (mapController == null || selectedPoint == null) return;
+    await mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(selectedPoint, _zoomLevel),
+    );
   }
 
   void _confirmPick() {
@@ -628,10 +648,16 @@ class _RequestMoneyLocationPickerSheetState
   }
 
   @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final canConfirm = _selectedPoint != null;
     final mediaQuery = MediaQuery.of(context);
-    final height = mediaQuery.size.height * 0.75;
+    final height = mediaQuery.size.height * 0.8;
     final bottomInset = mediaQuery.viewPadding.bottom;
 
     return SizedBox(
@@ -658,9 +684,13 @@ class _RequestMoneyLocationPickerSheetState
                     target: widget.initialCenter,
                     zoom: 15,
                   ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
                   onTap: (point) => setState(() => _selectedPoint = point),
                   onCameraMove: (cameraPosition) {
                     _cameraTarget = cameraPosition.target;
+                    _zoomLevel = cameraPosition.zoom;
                   },
                   markers: <Marker>{
                     if (_selectedPoint != null)
@@ -677,18 +707,34 @@ class _RequestMoneyLocationPickerSheetState
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,
                   mapToolbarEnabled: false,
+                  compassEnabled: true,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                  rotateGesturesEnabled: true,
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
                   onPressed: _pinAtCenter,
                   icon: const Icon(Icons.add_location_alt_outlined),
                   label: const Text('Pin center'),
                 ),
-                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _focusSelectedPoint,
+                  icon: const Icon(Icons.center_focus_strong),
+                  label: const Text('Focus pin'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancel'),

@@ -23,12 +23,49 @@ class AppConstants {
     return normalized.replaceFirst(RegExp(r'^/+'), '');
   }
 
+  static bool _isPrivateStorageUrl(Uri uri) {
+    final host = uri.host.toLowerCase();
+    return host == 't3.storageapi.dev' || host.endsWith('.t3.storageapi.dev');
+  }
+
+  static String _proxyUploadPathFromAbsoluteUri(Uri uri) {
+    final segments = uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    if (segments.isEmpty) return normalizedBaseUrl;
+
+    const uploadFolders = <String>{
+      'uploads',
+      'pfp',
+      'promptpay',
+      'verification',
+      'chat',
+    };
+
+    // Path-style URLs can include bucket name as first segment.
+    if (segments.length >= 2 &&
+        !uploadFolders.contains(segments.first.toLowerCase()) &&
+        uploadFolders.contains(segments[1].toLowerCase())) {
+      segments.removeAt(0);
+    }
+
+    final normalized = segments.join('/');
+    if (normalized.toLowerCase().startsWith('uploads/')) {
+      return '$normalizedBaseUrl$normalized';
+    }
+    return '${normalizedBaseUrl}uploads/$normalized';
+  }
+
   static String resolveApiUrl(String? path, {String? fallbackRelativePath}) {
     final trimmedPath = path?.trim() ?? '';
     if (trimmedPath.isEmpty) {
       final fallback = fallbackRelativePath?.trim() ?? '';
       if (fallback.isEmpty) return normalizedBaseUrl;
       if (fallback.startsWith('http://') || fallback.startsWith('https://')) {
+        final fallbackUri = Uri.tryParse(fallback);
+        if (fallbackUri != null && _isPrivateStorageUrl(fallbackUri)) {
+          return _proxyUploadPathFromAbsoluteUri(fallbackUri);
+        }
         return fallback;
       }
       return '$normalizedBaseUrl${_normalizeRelativePath(fallback)}';
@@ -36,6 +73,10 @@ class AppConstants {
 
     if (trimmedPath.startsWith('http://') ||
         trimmedPath.startsWith('https://')) {
+      final absoluteUri = Uri.tryParse(trimmedPath);
+      if (absoluteUri != null && _isPrivateStorageUrl(absoluteUri)) {
+        return _proxyUploadPathFromAbsoluteUri(absoluteUri);
+      }
       return trimmedPath;
     }
 
