@@ -19,9 +19,15 @@ const __dirname = path.dirname(__filename);
 const assetsDir = path.join(__dirname, "assets");
 const pfpDir = path.join(assetsDir, "pfp");
 const defaultPfpPath = path.join(pfpDir, "default_pfp.png");
+const uploadsDir =
+  process.env.UPLOADS_DIR ||
+  process.env.UPLOAD_DIR ||
+  process.env.RAILWAY_VOLUME_MOUNT_PATH ||
+  path.join(__dirname, "uploads");
 
 const app = express();
 app.use(morgan("combined"));
+fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Fallback to default profile image when DB points to a missing file.
 app.get("/assets/pfp/:filename", (req, res, next) => {
@@ -45,6 +51,7 @@ app.get("/assets/pfp/:filename", (req, res, next) => {
 });
 
 app.use("/assets", express.static(assetsDir));
+app.use("/uploads", express.static(uploadsDir));
 
 app.use("/auth", authService);
 app.use("/user", userService);
