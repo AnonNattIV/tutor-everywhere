@@ -58,7 +58,10 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     _setupDio();
 
-    _activePeerUserId = widget.initialPeerUserId;
+    final initialPeerUserId = widget.initialPeerUserId?.trim();
+    _activePeerUserId = initialPeerUserId == null || initialPeerUserId.isEmpty
+        ? null
+        : initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
 
     // Open the latest conversation by default when no specific peer is provided.
@@ -96,7 +99,10 @@ class _ChatPageState extends State<ChatPage> {
     // Poll conversations/messages for near real-time updates without sockets.
     _pollTimer = Timer.periodic(_pollInterval, (_) {
       if (!mounted) return;
-      _loadConversations(silent: true);
+      _loadConversations(
+        silent: true,
+        autoselectIfNeeded: _activePeerUserId == null,
+      );
       final peerId = _activePeerUserId;
       if (peerId != null) {
         _loadMessages(peerId, silent: true);
@@ -307,18 +313,25 @@ class _ChatPageState extends State<ChatPage> {
         options: _authOptions(),
       );
 
-      if (response.statusCode != 200 || response.data is! List) {
+      final rawConversations = _readList(
+        response.data,
+        candidateKeys: const ['conversations', 'data', 'items', 'results'],
+      );
+
+      if (response.statusCode != 200 || rawConversations == null) {
         if (!silent) {
           _showSnack('Failed to load conversations');
+        }
+        if (mounted) {
+          setState(() => _isLoadingConversations = false);
         }
         return;
       }
 
-      final parsed = (response.data as List<dynamic>)
-          .map(
-            (dynamic item) =>
-                _ConversationPreview.fromJson(item as Map<String, dynamic>),
-          )
+      final parsed = rawConversations
+          .map((dynamic item) => _readMap(item))
+          .whereType<Map<String, dynamic>>()
+          .map(_ConversationPreview.fromJson)
           .toList();
       parsed.sort((a, b) {
         final left = a.createdAt;
@@ -335,6 +348,7 @@ class _ChatPageState extends State<ChatPage> {
         _isLoadingConversations = false;
       });
 
+      var shouldAutoselectLatest = autoselectIfNeeded;
       if (_activePeerUserId != null) {
         final matches = parsed.where((c) => c.partnerId == _activePeerUserId);
         final match = matches.isEmpty ? null : matches.first;
@@ -342,10 +356,26 @@ class _ChatPageState extends State<ChatPage> {
           setState(() {
             _activePeerDisplayName = _displayNameForConversation(match);
           });
+        } else if (match == null && mounted && parsed.isNotEmpty) {
+          // Active thread no longer exists; fall back to latest conversation.
+          setState(() {
+            _activePeerUserId = null;
+            _activePeerDisplayName = '';
+          });
+          shouldAutoselectLatest = true;
         }
-      } else if (autoselectIfNeeded && parsed.isNotEmpty) {
+      } else if (parsed.isNotEmpty) {
+        shouldAutoselectLatest = autoselectIfNeeded;
+      }
+
+      if (shouldAutoselectLatest && parsed.isNotEmpty) {
         final first = parsed.first;
-        _openConversation(first.partnerId, _displayNameForConversation(first));
+        if (_activePeerUserId != first.partnerId) {
+          _openConversation(
+            first.partnerId,
+            _displayNameForConversation(first),
+          );
+        }
       }
     } catch (e) {
       if (!silent) {
@@ -368,18 +398,25 @@ class _ChatPageState extends State<ChatPage> {
         options: _authOptions(),
       );
 
-      if (response.statusCode != 200 || response.data is! List) {
+      final rawMessages = _readList(
+        response.data,
+        candidateKeys: const ['messages', 'data', 'items', 'results'],
+      );
+
+      if (response.statusCode != 200 || rawMessages == null) {
         if (!silent) {
           _showSnack('Failed to load messages');
+        }
+        if (mounted) {
+          setState(() => _isLoadingMessages = false);
         }
         return;
       }
 
-      final parsed = (response.data as List<dynamic>)
-          .map(
-            (dynamic item) =>
-                _ChatMessage.fromJson(item as Map<String, dynamic>),
-          )
+      final parsed = rawMessages
+          .map((dynamic item) => _readMap(item))
+          .whereType<Map<String, dynamic>>()
+          .map(_ChatMessage.fromJson)
           .toList();
       parsed.sort((a, b) {
         final left = a.createdAt;
@@ -407,12 +444,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _openConversation(String peerUserId, String peerDisplayName) {
+    final normalizedPeerUserId = peerUserId.trim();
+    if (normalizedPeerUserId.isEmpty) return;
     setState(() {
-      _activePeerUserId = peerUserId;
+      _activePeerUserId = normalizedPeerUserId;
       _activePeerDisplayName = peerDisplayName;
       _messages = <_ChatMessage>[];
     });
-    _loadMessages(peerUserId);
+    _loadMessages(normalizedPeerUserId);
   }
 
   void _closeConversation() {
@@ -426,11 +465,15 @@ class _ChatPageState extends State<ChatPage> {
   void _scrollMessagesToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_messageScrollController.hasClients) return;
-      _messageScrollController.animateTo(
+      _messageScrollController.jumpTo(
         _messageScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
       );
+      Future<void>.delayed(const Duration(milliseconds: 60), () {
+        if (!mounted || !_messageScrollController.hasClients) return;
+        _messageScrollController.jumpTo(
+          _messageScrollController.position.maxScrollExtent,
+        );
+      });
     });
   }
 
@@ -673,7 +716,8 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () => _loadConversations(),
+      onRefresh: () =>
+          _loadConversations(autoselectIfNeeded: _activePeerUserId == null),
       child: ListView.separated(
         itemCount: _conversations.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
@@ -1565,6 +1609,26 @@ Map<String, dynamic>? _readMap(dynamic value) {
       return null;
     }
   }
+  return null;
+}
+
+List<dynamic>? _readList(
+  dynamic value, {
+  List<String> candidateKeys = const [],
+}) {
+  if (value == null) return null;
+  if (value is List<dynamic>) return value;
+  if (value is List) return List<dynamic>.from(value);
+
+  final mapped = _readMap(value);
+  if (mapped == null) return null;
+
+  for (final key in candidateKeys) {
+    final dynamic candidate = mapped[key];
+    if (candidate is List<dynamic>) return candidate;
+    if (candidate is List) return List<dynamic>.from(candidate);
+  }
+
   return null;
 }
 

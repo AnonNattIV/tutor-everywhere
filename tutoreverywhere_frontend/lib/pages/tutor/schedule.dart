@@ -375,13 +375,40 @@ class _SchedulePageState extends State<SchedulePage> {
             lastDay: DateTime.utc(2030, 1, 1),
             focusedDay: _focusedDay,
             calendarFormat: _calendarFormat,
+            daysOfWeekHeight: 28,
+            rowHeight: 56,
             eventLoader: _eventsForDay,
             calendarStyle: const CalendarStyle(
               markersMaxCount: 1,
-              markerSize: 6,
+              markerSize: 5,
+              markerMargin: EdgeInsets.only(top: 2),
+              markersAlignment: Alignment.bottomCenter,
+              canMarkersOverflow: false,
+              defaultTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              weekendTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+              outsideTextStyle: TextStyle(fontSize: 16, color: Colors.black38),
               markerDecoration: BoxDecoration(
                 color: Colors.deepPurple,
                 shape: BoxShape.circle,
+              ),
+            ),
+            daysOfWeekStyle: const DaysOfWeekStyle(
+              weekdayStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black54,
+              ),
+              weekendStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black54,
               ),
             ),
 

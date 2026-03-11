@@ -41,7 +41,7 @@ class _TutorHomePageState extends State<AdminHomePage> {
             content: Text("Are you sure you want to logout?"),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context), // Cancel
+                onPressed: () => Navigator.pop(context),
                 child: Text("Cancel"),
               ),
               TextButton(
