@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
+import 'package:tutoreverywhere_frontend/pages/student/schedule.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
@@ -571,8 +572,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                _buildMenuItem(Icons.history, 'Lesson History'),
-                // _buildMenuItem(Icons.settings, 'Settings'),
+                _buildMenuItem(Icons.history, 'Schedule'),
               ],
             ),
           ),
@@ -671,7 +671,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         size: 16,
         color: Colors.grey,
       ),
-      onTap: () {},
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StudentSchedulePage(userId: widget.userId, embedded: false,))),
     );
   }
 

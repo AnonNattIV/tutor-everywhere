@@ -93,6 +93,10 @@ abstract class RestClient {
   @PATCH("/students/profile-picture")
   Future<void> uploadStudentProfilePicture(@Header("Authorization") String jwtToken, @Part(name: "profilePicture") File profilePicture);
 
+  // Students: Appointments
+  @GET("/students/appointments/{userId}")
+  Future<List<Appointment>> getAppointmentByStudentId(@Path("userId") String userId, {@Query("year") int? year, @Query("month") int? month, @Query("day") int? day});
+
   // Reviews
 
   @GET("/reviews/{tutorId}")

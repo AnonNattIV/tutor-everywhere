@@ -8,7 +8,7 @@ import { upload } from "../middleware/multer.ts";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
-import { getAppointmentByUserId } from "../controllers/appointments.ts";
+import { getAppointmentByTutorId } from "../controllers/appointments.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +49,7 @@ tutorService.get("/appointments/:userId", async (req, res) => {
   const userId = params.userId;
   console.log(formattedDateQuery);
   try {
-    const appointments = await getAppointmentByUserId(userId, formattedDateQuery)
+    const appointments = await getAppointmentByTutorId(userId, formattedDateQuery)
     res.status(200).json(appointments);
   } catch (err) {
     res.status(500).json({message: "Error find tutor" });

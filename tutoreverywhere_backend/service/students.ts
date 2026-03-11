@@ -6,6 +6,7 @@ import { upload } from "../middleware/multer.ts";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
+import { getAppointmentByStudentId } from "../controllers/appointments.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,6 +79,23 @@ studentService.post("/bio", verifyToken, async (req, res) => {
   } catch (err) {
     res.status(500).json({message: "Error bio"});
   }
-})  
+})
+
+studentService.get("/appointments/:userId", async (req, res) => {
+  const query = req.query;
+  const year = query.year?.toString();
+  const month = query.month?.toString();
+  const day = query.day?.toString();
+  const formattedDateQuery = year + '-' + month + '-' + day;
+  const params = req.params;
+  const userId = params.userId;
+  console.log(formattedDateQuery);
+  try {
+    const appointments = await getAppointmentByStudentId(userId, formattedDateQuery)
+    res.status(200).json(appointments);
+  } catch (err) {
+    res.status(500).json({message: "Error find student appointment" });
+  }
+})
 
 export default studentService
