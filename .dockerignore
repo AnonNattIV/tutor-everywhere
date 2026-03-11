@@ -1,0 +1,17 @@
+.git
+.gitignore
+
+# Ignore local credentials
+.env
+**/.env
+
+# Ignore local dependencies and caches
+**/node_modules
+**/.dart_tool
+**/.pub-cache
+**/.pub
+
+# Ignore local build outputs
+**/build
+**/dist
+**/coverage
