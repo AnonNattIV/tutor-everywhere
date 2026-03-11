@@ -92,6 +92,9 @@ app.get("/assets/pfp/:filename", (req, res, next) => {
 
 app.use("/assets", express.static(assetsDir));
 app.get(/^\/uploads\/(.+)/, async (req, res, next) => {
+  // Upload read endpoint:
+  // 1) Try local Railway volume path first.
+  // 2) Fallback to object storage stream when file is not on local disk.
   const rawKey = req.params[0]?.toString?.() ?? "";
   const objectKey = rawKey.replace(/^\/+/, "");
 
@@ -145,6 +148,8 @@ app.get(/^\/uploads\/(.+)/, async (req, res, next) => {
 });
 app.use("/uploads", express.static(uploadsDir));
 
+// Core API route groups.
+// Each service owns request validation + request/response mapping for its domain.
 app.use("/auth", authService);
 app.use("/user", userService);
 app.use("/register", registerService);
