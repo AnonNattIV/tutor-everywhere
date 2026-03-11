@@ -23,6 +23,7 @@ class SchedulePage extends StatefulWidget {
 class _SchedulePageState extends State<SchedulePage> {
   bool _isLoading = true;
   List<Appointment> _appointments = [];
+  Map<DateTime, List<Appointment>> _appointmentsByDay = {};
   String? _errorMessage;
 
   DateTime _focusedDay = DateTime.now();
@@ -33,6 +34,23 @@ class _SchedulePageState extends State<SchedulePage> {
   late final Dio _dio;
   late final RestClient _client;
   static String get _baseUrl => AppConstants.normalizedBaseUrl;
+
+  String _dioErrorMessage(
+    DioException e, {
+    String fallback = 'Failed to load appointments',
+  }) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final message = data['message'] ?? data['error'];
+      if (message != null && message.toString().trim().isNotEmpty) {
+        return message.toString();
+      }
+    }
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+    return e.message ?? fallback;
+  }
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -59,10 +77,44 @@ class _SchedulePageState extends State<SchedulePage> {
   void initState() {
     super.initState();
     _setupDio();
-    _fetchAppointments();
+    _fetchAppointmentsForMonth(targetMonth: _focusedDay);
   }
 
-  Future<void> _fetchAppointments() async {
+  DateTime _normalizeDate(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  Map<DateTime, List<Appointment>> _groupAppointmentsByDay(
+    List<Appointment> appointments,
+  ) {
+    final grouped = <DateTime, List<Appointment>>{};
+    for (final appointment in appointments) {
+      final day = _normalizeDate(appointment.startDate);
+      grouped.putIfAbsent(day, () => <Appointment>[]).add(appointment);
+    }
+    return grouped;
+  }
+
+  List<Appointment> _eventsForDay(DateTime day) {
+    return _appointmentsByDay[_normalizeDate(day)] ?? const <Appointment>[];
+  }
+
+  Future<List<Appointment>?> _tryFetchLegacyAppointmentsForDay(
+    DateTime dayToLoad,
+  ) async {
+    try {
+      return await _client.getAppointmentByTutorId(
+        widget.userId,
+        year: dayToLoad.year,
+        month: dayToLoad.month,
+        day: dayToLoad.day,
+      );
+    } on DioException {
+      return null;
+    }
+  }
+
+  Future<void> _fetchAppointmentsForMonth({DateTime? targetMonth}) async {
+    final monthToLoad = targetMonth ?? _focusedDay;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -71,23 +123,42 @@ class _SchedulePageState extends State<SchedulePage> {
     try {
       final appointments = await _client.getAppointmentByTutorId(
         widget.userId,
-        year: _selectedDay?.year,
-        month: _selectedDay?.month,
-        day: _selectedDay?.day,
+        year: monthToLoad.year,
+        month: monthToLoad.month,
       );
 
       if (!mounted) return;
+      final groupedAppointments = _groupAppointmentsByDay(appointments);
       setState(() {
-        _appointments = appointments;
+        _appointmentsByDay = groupedAppointments;
+        final selectedDay = _selectedDay;
+        _appointments = selectedDay == null
+            ? <Appointment>[]
+            : _eventsForDay(selectedDay);
         _isLoading = false;
       });
     } on DioException catch (e) {
+      final selectedDay = _selectedDay ?? monthToLoad;
+      final fallbackAppointments = await _tryFetchLegacyAppointmentsForDay(
+        selectedDay,
+      );
+      if (fallbackAppointments != null) {
+        if (!mounted) return;
+        final groupedAppointments = _groupAppointmentsByDay(
+          fallbackAppointments,
+        );
+        setState(() {
+          _appointmentsByDay = groupedAppointments;
+          _appointments = _eventsForDay(selectedDay);
+          _errorMessage = null;
+          _isLoading = false;
+        });
+        return;
+      }
+
       if (!mounted) return;
       setState(() {
-        _errorMessage =
-            e.response?.data['message'] ??
-            e.message ??
-            'Failed to load appointments';
+        _errorMessage = _dioErrorMessage(e);
         _isLoading = false;
       });
       debugPrint('Dio Error fetching appointments: ${e.type} - ${e.message}');
@@ -304,6 +375,42 @@ class _SchedulePageState extends State<SchedulePage> {
             lastDay: DateTime.utc(2030, 1, 1),
             focusedDay: _focusedDay,
             calendarFormat: _calendarFormat,
+            daysOfWeekHeight: 28,
+            rowHeight: 56,
+            eventLoader: _eventsForDay,
+            calendarStyle: const CalendarStyle(
+              markersMaxCount: 1,
+              markerSize: 5,
+              markerMargin: EdgeInsets.only(top: 2),
+              markersAlignment: Alignment.bottomCenter,
+              canMarkersOverflow: false,
+              defaultTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              weekendTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+              outsideTextStyle: TextStyle(fontSize: 16, color: Colors.black38),
+              markerDecoration: BoxDecoration(
+                color: Colors.deepPurple,
+                shape: BoxShape.circle,
+              ),
+            ),
+            daysOfWeekStyle: const DaysOfWeekStyle(
+              weekdayStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black54,
+              ),
+              weekendStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black54,
+              ),
+            ),
 
             selectedDayPredicate: (day) {
               return isSameDay(_selectedDay, day);
@@ -313,8 +420,8 @@ class _SchedulePageState extends State<SchedulePage> {
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
+                _appointments = _eventsForDay(selectedDay);
               });
-              _fetchAppointments();
             },
 
             onFormatChanged: (format) {
@@ -326,7 +433,8 @@ class _SchedulePageState extends State<SchedulePage> {
             },
 
             onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
+              setState(() => _focusedDay = focusedDay);
+              _fetchAppointmentsForMonth(targetMonth: focusedDay);
             },
           ),
         ),
