@@ -19,6 +19,16 @@ Database: PostgreSQL
 
 `dart run build_runner build` to generate json serializable/ retrofit code
 
+**Bind frontend to Railway backend**
+
+```bash
+flutter run --dart-define=API_BASE_URL=https://your-service-name.up.railway.app
+```
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=https://your-service-name.up.railway.app
+```
+
 **Google Maps API key (Android)**
 
 Add this to `tutoreverywhere_frontend/android/local.properties` (this file is ignored by git):

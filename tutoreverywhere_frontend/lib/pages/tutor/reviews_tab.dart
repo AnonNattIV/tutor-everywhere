@@ -10,11 +10,7 @@ import 'package:tutoreverywhere_frontend/models/reviews/data.dart';
 import 'package:tutoreverywhere_frontend/pages/student/profile.dart';
 
 class ReviewsTab extends StatefulWidget {
-  const ReviewsTab({
-    super.key,
-    required this.tutorId,
-    required this.tutorName,
-  });
+  const ReviewsTab({super.key, required this.tutorId, required this.tutorName});
 
   final String tutorId;
   final String tutorName;
@@ -43,12 +39,17 @@ class _ReviewsTabState extends State<ReviewsTab> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
-    ));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 300,
+      ),
+    );
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
@@ -60,7 +61,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
 
     try {
       final reviews = await _client.getReviewsByRevieweeId(widget.tutorId);
-      
+
       if (!mounted) return;
       setState(() {
         _reviews = reviews;
@@ -69,7 +70,10 @@ class _ReviewsTabState extends State<ReviewsTab> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.response?.data['message'] ?? e.message ?? 'Failed to load reviews';
+        _errorMessage =
+            e.response?.data['message'] ??
+            e.message ??
+            'Failed to load reviews';
         _isLoading = false;
       });
       debugPrint('Dio Error fetching reviews: ${e.type} - ${e.message}');
@@ -86,7 +90,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
   /// Show dialog to submit a new review
   void _showReviewDialog() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     // Check authentication
     if (authProvider.token == null || authProvider.token!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,16 +121,22 @@ class _ReviewsTabState extends State<ReviewsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Rating
-                    const Text('Rating', style: TextStyle(fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Rating',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: List.generate(5, (index) {
                         final starValue = index + 1;
                         return GestureDetector(
-                          onTap: () => setDialogState(() => selectedRating = starValue),
+                          onTap: () =>
+                              setDialogState(() => selectedRating = starValue),
                           child: Icon(
-                            index < selectedRating ? Icons.star : Icons.star_border,
+                            index < selectedRating
+                                ? Icons.star
+                                : Icons.star_border,
                             color: Colors.amber,
                             size: 32,
                           ),
@@ -134,23 +144,31 @@ class _ReviewsTabState extends State<ReviewsTab> {
                       }),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Subject Dropdown
                     DropdownButtonFormField<String>(
                       value: selectedSubject,
                       decoration: const InputDecoration(
                         labelText: 'Subject Taught',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                       ),
                       items: _availableSubjects.map((subject) {
-                        return DropdownMenuItem(value: subject, child: Text(subject));
+                        return DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject),
+                        );
                       }).toList(),
-                      onChanged: (value) => setDialogState(() => selectedSubject = value),
-                      validator: (value) => value == null ? 'Please select a subject' : null,
+                      onChanged: (value) =>
+                          setDialogState(() => selectedSubject = value),
+                      validator: (value) =>
+                          value == null ? 'Please select a subject' : null,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Comment
                     TextFormField(
                       controller: commentController,
@@ -158,7 +176,10 @@ class _ReviewsTabState extends State<ReviewsTab> {
                         labelText: 'Comment (Optional)',
                         hintText: 'Share your experience...',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                         alignLabelWithHint: true,
                       ),
                       maxLines: 3,
@@ -176,7 +197,9 @@ class _ReviewsTabState extends State<ReviewsTab> {
           ),
           actions: [
             TextButton(
-              onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
+              onPressed: isSubmitting
+                  ? null
+                  : () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -219,32 +242,44 @@ class _ReviewsTabState extends State<ReviewsTab> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Review submitted!')),
                         );
-                        
+
                         // Refresh reviews list
                         await _fetchReviews();
                       } on DioException catch (e) {
                         if (!mounted) return;
-                        
+
                         String errorMsg;
-                        
+
                         // 👇 Check for 500 Internal Server Error
                         if (e.response?.statusCode == 500) {
-                          errorMsg = 'You have already reviewed for this subject, or error';
+                          errorMsg =
+                              'You have already reviewed for this subject, or error';
                         } else {
                           // Handle other errors normally
-                          errorMsg = e.response?.data['message'] ?? e.message ?? 'Failed to submit review';
+                          errorMsg =
+                              e.response?.data['message'] ??
+                              e.message ??
+                              'Failed to submit review';
                         }
-                        
+
                         setDialogState(() => isSubmitting = false);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
+                          SnackBar(
+                            content: Text(errorMsg),
+                            backgroundColor: Colors.red,
+                          ),
                         );
-                        debugPrint('Dio Error submitting review: ${e.type} - ${e.message}');
+                        debugPrint(
+                          'Dio Error submitting review: ${e.type} - ${e.message}',
+                        );
                       } catch (e) {
                         if (!mounted) return;
                         setDialogState(() => isSubmitting = false);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
                         );
                         debugPrint('Error submitting review: $e');
                       }
@@ -257,7 +292,10 @@ class _ReviewsTabState extends State<ReviewsTab> {
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
                     )
                   : const Text('Submit'),
             ),
@@ -272,10 +310,8 @@ class _ReviewsTabState extends State<ReviewsTab> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StudentProfilePage(
-          embedded: true,
-          userId: studentId,
-        ),
+        builder: (context) =>
+            StudentProfilePage(embedded: true, userId: studentId),
       ),
     );
   }
@@ -284,13 +320,19 @@ class _ReviewsTabState extends State<ReviewsTab> {
     return DateFormat('MMM dd, yyyy').format(date);
   }
 
-  Widget _buildRatingStars(int rating, {bool interactive = false, Function(int)? onRatingChange}) {
+  Widget _buildRatingStars(
+    int rating, {
+    bool interactive = false,
+    Function(int)? onRatingChange,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
         final starValue = index + 1;
         return GestureDetector(
-          onTap: interactive && onRatingChange != null ? () => onRatingChange(starValue) : null,
+          onTap: interactive && onRatingChange != null
+              ? () => onRatingChange(starValue)
+              : null,
           child: Icon(
             index < rating ? Icons.star : Icons.star_border,
             color: Colors.amber,
@@ -319,8 +361,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
   ImageProvider? _getProfileImage(String? pictureUrl) {
     if (pictureUrl == null || pictureUrl.isEmpty) return null;
     if (pictureUrl.contains('default_pfp.png')) return null;
-    if (pictureUrl.startsWith('http')) return NetworkImage(pictureUrl);
-    return NetworkImage(_baseUrl + pictureUrl);
+    return NetworkImage(AppConstants.resolveApiUrl(pictureUrl));
   }
 
   Widget _buildReviewCard(Review review) {
@@ -340,14 +381,18 @@ class _ReviewsTabState extends State<ReviewsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
-                  onTap: isClickable ? () => _navigateToStudentProfile(review.reviewer) : null,
+                  onTap: isClickable
+                      ? () => _navigateToStudentProfile(review.reviewer)
+                      : null,
                   child: CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.deepPurple.shade100,
                     backgroundImage: reviewerImage,
                     child: reviewerImage == null
                         ? Icon(
-                            review.reviewerGender.toLowerCase() == 'male' ? Icons.male : Icons.female,
+                            review.reviewerGender.toLowerCase() == 'male'
+                                ? Icons.male
+                                : Icons.female,
                             size: 24,
                             color: Colors.deepPurple,
                           )
@@ -360,9 +405,13 @@ class _ReviewsTabState extends State<ReviewsTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: isClickable ? () => _navigateToStudentProfile(review.reviewer) : null,
+                        onTap: isClickable
+                            ? () => _navigateToStudentProfile(review.reviewer)
+                            : null,
                         child: MouseRegion(
-                          cursor: isClickable ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                          cursor: isClickable
+                              ? SystemMouseCursors.click
+                              : SystemMouseCursors.basic,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -371,11 +420,16 @@ class _ReviewsTabState extends State<ReviewsTab> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
-                                  color: isClickable ? Colors.deepPurple : Colors.black87,
-                                  decoration: isClickable ? TextDecoration.underline : TextDecoration.none,
+                                  color: isClickable
+                                      ? Colors.deepPurple
+                                      : Colors.black87,
+                                  decoration: isClickable
+                                      ? TextDecoration.underline
+                                      : TextDecoration.none,
                                 ),
                               ),
-                              _buildVerifiedBadge(review.reviewerVerified) ?? const SizedBox.shrink(),
+                              _buildVerifiedBadge(review.reviewerVerified) ??
+                                  const SizedBox.shrink(),
                             ],
                           ),
                         ),
@@ -408,11 +462,16 @@ class _ReviewsTabState extends State<ReviewsTab> {
                 ),
               ),
             ),
-            if (review.comment != null && review.comment!.trim().isNotEmpty) ...[
+            if (review.comment != null &&
+                review.comment!.trim().isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
                 review.comment!,
-                style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
               ),
             ],
           ],
@@ -451,9 +510,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
           ),
 
         // Reviews list section
-        Expanded(
-          child: _buildReviewsList(),
-        ),
+        Expanded(child: _buildReviewsList()),
       ],
     );
   }
@@ -503,7 +560,11 @@ class _ReviewsTabState extends State<ReviewsTab> {
             const SizedBox(height: 12),
             Text(
               'No reviews yet for ${widget.tutorName}',
-              style: TextStyle(fontSize: 15, color: Colors.grey[600], fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

@@ -178,9 +178,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
     final selectedTab = await Navigator.push<int>(
       context,
       MaterialPageRoute(
-        builder: (context) => TutorProfilePage(
-          userId: tutor.userUuid,
-        ),
+        builder: (context) => TutorProfilePage(userId: tutor.userUuid),
       ),
     );
     if (!mounted || selectedTab == null) return;
@@ -197,13 +195,11 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   ImageProvider? _resolveProfileImage(String pic) {
     if (pic.isEmpty) return null;
 
-    // Special case: default profile picture needs assets path prefix
     if (pic.contains('default_pfp.png')) {
-      return NetworkImage('${_baseUrl}assets/pfp/default_pfp.png');
+      return NetworkImage(AppConstants.defaultProfilePictureUrl);
     }
 
-    // Return absolute URL if already full, otherwise prepend base URL
-    final url = pic.startsWith('http') ? pic : _baseUrl + pic;
+    final url = AppConstants.resolveApiUrl(pic);
     return NetworkImage(url);
   }
 
@@ -244,16 +240,24 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                       decoration: InputDecoration(
                         hintText: 'Search for name here',
                         hintStyle: TextStyle(color: Colors.grey.shade600),
-                        prefixIcon: const Icon(Icons.search, color: Colors.black54),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.black54,
+                        ),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.cancel_outlined, color: Colors.black54),
+                          icon: const Icon(
+                            Icons.cancel_outlined,
+                            color: Colors.black54,
+                          ),
                           onPressed: () {
                             _searchController.clear();
                             _fetchTutors();
                           },
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -278,15 +282,19 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.tune,
-                            color: _hasActiveFilters
-                                ? Colors.deepPurple
-                                : Colors.black54),
+                        Icon(
+                          Icons.tune,
+                          color: _hasActiveFilters
+                              ? Colors.deepPurple
+                              : Colors.black54,
+                        ),
                         if (_hasActiveFilters) ...[
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.deepPurple,
                               borderRadius: BorderRadius.circular(10),
@@ -294,9 +302,10 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                             child: Text(
                               '$_activeFilterCount',
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -427,9 +436,10 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                     Text(
                       title,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Colors.black87),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.black87,
+                      ),
                     ),
                     if (subjects.isNotEmpty) ...[
                       const SizedBox(height: 6),
@@ -439,18 +449,22 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                         children: subjects.map((e) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.deepPurple.shade50,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: Colors.deepPurple.shade100),
+                                color: Colors.deepPurple.shade100,
+                              ),
                             ),
                             child: Text(
                               '${e.key} · ${e.value} ฿/hr',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.deepPurple.shade800),
+                                fontSize: 12,
+                                color: Colors.deepPurple.shade800,
+                              ),
                             ),
                           );
                         }).toList(),
@@ -460,26 +474,39 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on,
-                              size: 14, color: Colors.red.shade400),
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.red.shade400,
+                          ),
                           const SizedBox(width: 4),
-                          Text(tutor.location!,
-                              style: const TextStyle(
-                                  color: Colors.black87, fontSize: 14)),
+                          Text(
+                            tutor.location!,
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       ),
                     ],
                     if (tutor.province != null) ...[
                       const SizedBox(height: 2),
-                      Text(tutor.province!,
-                          style: const TextStyle(
-                              color: Colors.black54, fontSize: 12)),
+                      Text(
+                        tutor.province!,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 4),
                     Text(
                       '${tutor.reviewCount} review${tutor.reviewCount == "1" ? "" : "s"}',
                       style: const TextStyle(
-                          color: Colors.black54, fontSize: 12),
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -551,16 +578,16 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
 
   // When zone changes, clear province & location downstream
   void _onZoneChanged(String? zone) => setState(() {
-        _zone = zone;
-        _province = null;
-        _location = null;
-      });
+    _zone = zone;
+    _province = null;
+    _location = null;
+  });
 
   // When province changes, clear location downstream
   void _onProvinceChanged(String? province) => setState(() {
-        _province = province;
-        _location = null;
-      });
+    _province = province;
+    _location = null;
+  });
 
   void _updateMaxPrice(int? value) {
     setState(() => _maxPrice = value?.clamp(1, _maxPriceCap));
@@ -605,7 +632,10 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
         ),
       ),
       padding: EdgeInsets.fromLTRB(
-        20, 24, 20, 20 + MediaQuery.of(context).viewInsets.bottom,
+        20,
+        24,
+        20,
+        20 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SafeArea(
         top: false,
@@ -621,9 +651,10 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                   const Text(
                     'Filter Tutors',
                     style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
                   ),
                   TextButton(
                     onPressed: _resetFilters,
@@ -804,7 +835,9 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                     borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                 ),
                 onChanged: _handlePriceChanged,
               ),
@@ -813,7 +846,9 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                 Text(
                   'Custom price cap: $_maxPrice Baht / Hour',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w600, color: Colors.black87),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
                 if (_maxPrice! >= _minPrice)
                   SliderTheme(
@@ -827,7 +862,9 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                       max: _maxPriceCap.toDouble(),
                       divisions: (_maxPriceCap - _minPrice) ~/ 50,
                       value: _maxPrice!.toDouble().clamp(
-                            _minPrice.toDouble(), _maxPriceCap.toDouble()),
+                        _minPrice.toDouble(),
+                        _maxPriceCap.toDouble(),
+                      ),
                       label: '$_maxPrice',
                       onChanged: (value) =>
                           _updateMaxPrice((value / 50).round() * 50),
@@ -862,12 +899,17 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('OK',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -879,10 +921,13 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
   }
 
   Widget _buildSectionLabel(String label) => Text(
-        label,
-        style: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
-      );
+    label,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Colors.black87,
+    ),
+  );
 
   Widget _buildDropdownField<T>({
     required String label,
@@ -893,11 +938,14 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
         const SizedBox(height: 6),
         DropdownButtonFormField<T?>(
           value: value,
@@ -909,7 +957,9 @@ class _FilterTutorsSheetState extends State<_FilterTutorsSheet> {
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
@@ -986,19 +1036,27 @@ enum _TutorSort { popularityDesc, ratingDesc, priceAsc, priceDesc }
 extension _TutorSortExt on _TutorSort {
   String get shortLabel {
     switch (this) {
-      case _TutorSort.popularityDesc: return 'Popular';
-      case _TutorSort.ratingDesc:     return 'Top Rated';
-      case _TutorSort.priceAsc:       return 'Low Price';
-      case _TutorSort.priceDesc:      return 'High Price';
+      case _TutorSort.popularityDesc:
+        return 'Popular';
+      case _TutorSort.ratingDesc:
+        return 'Top Rated';
+      case _TutorSort.priceAsc:
+        return 'Low Price';
+      case _TutorSort.priceDesc:
+        return 'High Price';
     }
   }
 
   String get queryValue {
     switch (this) {
-      case _TutorSort.popularityDesc: return 'popular';
-      case _TutorSort.ratingDesc:     return 'toprated';
-      case _TutorSort.priceAsc:       return 'lowprice';
-      case _TutorSort.priceDesc:      return 'maxprice';
+      case _TutorSort.popularityDesc:
+        return 'popular';
+      case _TutorSort.ratingDesc:
+        return 'toprated';
+      case _TutorSort.priceAsc:
+        return 'lowprice';
+      case _TutorSort.priceDesc:
+        return 'maxprice';
     }
   }
 }

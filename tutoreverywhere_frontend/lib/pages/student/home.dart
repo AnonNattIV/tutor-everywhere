@@ -107,9 +107,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
     final selectedTab = await Navigator.push<int>(
       context,
       MaterialPageRoute(
-        builder: (context) => TutorProfilePage(
-          userId: tutor.userUuid,
-        ),
+        builder: (context) => TutorProfilePage(userId: tutor.userUuid),
       ),
     );
     if (!mounted || selectedTab == null) return;
@@ -171,8 +169,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
     ];
 
     return Scaffold(
-      backgroundColor:
-          currentPageIndex == 2 ? Colors.grey.shade50 : Colors.white,
+      backgroundColor: currentPageIndex == 2
+          ? Colors.grey.shade50
+          : Colors.white,
       appBar: _buildAppBar(),
       body: IndexedStack(index: currentPageIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
@@ -232,9 +231,13 @@ class _StudentHomePageState extends State<StudentHomePage> {
     switch (currentPageIndex) {
       case 1:
         return AppBar(
-          title: const Text('Chat',
-              style: TextStyle(
-                  color: Colors.black87, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Chat',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           actions: [
             PopupMenuButton<String>(
               onSelected: _onMenuOptionSelected,
@@ -249,9 +252,13 @@ class _StudentHomePageState extends State<StudentHomePage> {
         );
       case 2:
         return AppBar(
-          title: const Text('My Profile',
-              style: TextStyle(
-                  color: Colors.black87, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'My Profile',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           actions: [
             PopupMenuButton<String>(
               onSelected: _onMenuOptionSelected,
@@ -270,9 +277,13 @@ class _StudentHomePageState extends State<StudentHomePage> {
             icon: const Icon(Icons.search, color: Colors.black87),
             onPressed: _openFindTutors,
           ),
-          title: const Text('Home',
-              style: TextStyle(
-                  color: Colors.black87, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Home',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           actions: [
             PopupMenuButton<String>(
               onSelected: _onMenuOptionSelected,
@@ -343,8 +354,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
               borderRadius: BorderRadius.circular(999),
               onTap: () => _openFindTutors(subject: title),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Row(
                   children: [
                     const Text(
@@ -356,8 +366,11 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward,
-                        color: Colors.lightBlue.shade400, size: 18),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.lightBlue.shade400,
+                      size: 18,
+                    ),
                   ],
                 ),
               ),
@@ -411,8 +424,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
   Widget _buildTutorCard({required FindTutors tutor}) {
     final fullName = '${tutor.firstname} ${tutor.lastname}';
     final rating = double.tryParse(tutor.avgRating);
-    final ratingLabel =
-        rating != null ? rating.toStringAsFixed(1) : tutor.avgRating;
+    final ratingLabel = rating != null
+        ? rating.toStringAsFixed(1)
+        : tutor.avgRating;
 
     // Show price from the first subject entry in subjectByPrice
     final firstSubject = tutor.subjectByPrice.entries.firstOrNull;
@@ -422,10 +436,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
     final pic = tutor.profilePicture;
     if (pic.isNotEmpty) {
       final url = pic.contains('default_pfp.png')
-          ? '${_baseUrl}assets/pfp/default_pfp.png'
-          : pic.startsWith('http')
-              ? pic
-              : '$_baseUrl$pic';
+          ? AppConstants.defaultProfilePictureUrl
+          : AppConstants.resolveApiUrl(pic);
       profileImage = NetworkImage(url);
     }
 
@@ -449,8 +461,11 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 backgroundColor: Colors.white,
                 backgroundImage: profileImage,
                 child: profileImage == null
-                    ? Icon(Icons.person,
-                        size: 40, color: Colors.deepPurple.shade200)
+                    ? Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Colors.deepPurple.shade200,
+                      )
                     : null,
               ),
               const SizedBox(width: 16),
@@ -462,7 +477,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     Text(
                       '$fullName ($ratingLabel ⭐)',
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -470,14 +487,19 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     if (tutor.location != null)
                       Row(
                         children: [
-                          Icon(Icons.location_on,
-                              size: 14, color: Colors.red.shade400),
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.red.shade400,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               tutor.location!,
                               style: const TextStyle(
-                                  color: Colors.black87, fontSize: 13),
+                                color: Colors.black87,
+                                fontSize: 13,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -489,7 +511,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       Text(
                         '${firstSubject.value} Baht / Hour',
                         style: const TextStyle(
-                            color: Colors.black54, fontSize: 13),
+                          color: Colors.black54,
+                          fontSize: 13,
+                        ),
                       ),
                   ],
                 ),

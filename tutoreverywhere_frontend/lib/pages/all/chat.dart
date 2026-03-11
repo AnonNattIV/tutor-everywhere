@@ -131,27 +131,15 @@ class _ChatPageState extends State<ChatPage> {
     final trimmed = path.trim();
     if (trimmed.isEmpty) return null;
     if (trimmed.contains('default_pfp.png')) {
-      return '${_baseUrl}assets/pfp/default_pfp.png';
+      return AppConstants.defaultProfilePictureUrl;
     }
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/')) {
-      return '$_baseUrl${trimmed.substring(1)}';
-    }
-    return '$_baseUrl$trimmed';
+    return AppConstants.resolveApiUrl(trimmed);
   }
 
   String? _absoluteAssetUrl(String path) {
     final trimmed = path.trim();
     if (trimmed.isEmpty) return null;
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/')) {
-      return '$_baseUrl${trimmed.substring(1)}';
-    }
-    return '$_baseUrl$trimmed';
+    return AppConstants.resolveApiUrl(trimmed);
   }
 
   String _conversationSubtitle(_ConversationPreview conversation) {
@@ -938,8 +926,8 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
           ),
-      
-          if (message.messageType.contains('paid')) ... [
+
+          if (message.messageType.contains('paid')) ...[
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: _showPaidDialog,
@@ -947,7 +935,7 @@ class _ChatPageState extends State<ChatPage> {
               label: const Text('Paid'),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(36),
-                backgroundColor: Colors.green
+                backgroundColor: Colors.green,
               ),
             ),
           ],
@@ -956,7 +944,7 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(height: 6),
             Row(
               children: [
-                if (!message.messageType.contains('paid')) ... [
+                if (!message.messageType.contains('paid')) ...[
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
@@ -977,7 +965,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                 ],
-                if (!message.messageType.contains('paid')) ... [
+                if (!message.messageType.contains('paid')) ...[
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton.icon(

@@ -32,12 +32,17 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null && status >= 200 && status < 300,
-    ));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 300,
+      ),
+    );
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
@@ -83,7 +88,6 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
 
   @override
   Widget build(BuildContext context) {
-
     final token = context.read<AuthProvider>().token;
     Future<void> _acceptVerification() async {
       try {
@@ -144,7 +148,11 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
     final dateOfBirth = _formatDateOfBirth(_tutor?.dateofbirth);
     final gender = _tutor?.gender;
     final verificationPicture = _tutor?.verificationPicture;
-    
+    final verificationImageUrl = AppConstants.resolveApiUrl(
+      verificationPicture,
+      fallbackRelativePath: 'assets/pfp/default_pfp.png',
+    );
+
     IconData genderIcon;
     Color genderColor;
     if (gender?.toLowerCase() == 'female') {
@@ -186,7 +194,7 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
             // Date of birth
             Center(
               child: Text(
-                'Date of Birth: ${dateOfBirth ?? 'N/A'}',
+                'Date of Birth: $dateOfBirth',
                 style: const TextStyle(fontSize: 15, color: Colors.grey),
               ),
             ),
@@ -195,7 +203,8 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
             // ID image
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(_baseUrl + verificationPicture!  ,
+              child: Image.network(
+                verificationImageUrl,
                 height: 220,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -203,7 +212,11 @@ class _IdVerifyUserPageState extends State<IdVerifyUserPage> {
                   height: 220,
                   color: Colors.grey.shade200,
                   child: const Center(
-                    child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
                 loadingBuilder: (context, child, loadingProgress) {

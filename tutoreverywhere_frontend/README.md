@@ -1,16 +1,36 @@
-# tutoreverywhere_frontend
+# TutorEverywhere Frontend
 
-A new Flutter project.
+## Bind App To Railway Backend
 
-## Getting Started
+The app reads backend URL from compile-time define `API_BASE_URL`.
 
-This project is a starting point for a Flutter application.
+Example Railway URL:
 
-A few resources to get you started if this is your first Flutter project:
+```text
+https://your-service-name.up.railway.app
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Run on emulator/device:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+flutter run --dart-define=API_BASE_URL=https://your-service-name.up.railway.app
+```
+
+Build release APK:
+
+```bash
+flutter build apk --release --dart-define=API_BASE_URL=https://your-service-name.up.railway.app
+```
+
+Build Android App Bundle:
+
+```bash
+flutter build appbundle --release --dart-define=API_BASE_URL=https://your-service-name.up.railway.app
+```
+
+## Notes
+
+- Use `https` Railway domain.
+- If login fails, confirm Railway backend env vars and database connectivity are configured.
+- If backend returns image URLs from object storage, app now supports both absolute URLs and relative paths.

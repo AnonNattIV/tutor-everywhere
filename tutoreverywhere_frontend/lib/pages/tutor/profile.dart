@@ -384,13 +384,11 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
     final picture = _tutor?.profilePicture;
     if (picture == null || picture.isEmpty) return null;
 
-    // Special case: default profile picture needs assets path prefix
     if (picture.contains('default_pfp.png')) {
-      return '${_baseUrl}assets/pfp/default_pfp.png';
+      return AppConstants.defaultProfilePictureUrl;
     }
 
-    // Return absolute URL if already full, otherwise prepend base URL
-    return picture.startsWith('http') ? picture : _baseUrl + picture;
+    return AppConstants.resolveApiUrl(picture);
   }
 
   Future<void> _pickImage(ImageSource source) async {
