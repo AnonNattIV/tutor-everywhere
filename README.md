@@ -15,6 +15,23 @@ Database: PostgreSQL
 
 `npm run dev` to run api in development mode
 
+**Backend with Docker (`docker run`)**
+
+Build image:
+
+```bash
+docker build -t tutor-everywhere-backend ./tutoreverywhere_backend
+```
+
+Run container (uses root `.env` file):
+
+```bash
+docker run --rm -p 3000:3000 --env-file ./.env --name tutor-everywhere-backend tutor-everywhere-backend
+```
+
+Backend supports both `PG_*` and `DB_*` env names for database config.
+If your database does not use SSL, set `PGSSL=disable` (or `DB_SSL=false`) in `.env`.
+
 **Essential frontend commands:**
 
 `dart run build_runner build` to generate json serializable/ retrofit code

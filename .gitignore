@@ -1,1 +1,40 @@
-test
+# Secrets and local env files
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Node / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Build and coverage outputs
+dist/
+build/
+coverage/
+
+# Backend runtime uploads (keep default avatar in repo)
+tutoreverywhere_backend/assets/pfp/*
+!tutoreverywhere_backend/assets/pfp/default_pfp.png
+
+# Flutter / Dart generated files
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub/
+**/.pub-cache/
+**/ios/Flutter/.last_build_id
+tutoreverywhere_frontend/android/local.properties
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
