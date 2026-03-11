@@ -1,12 +1,31 @@
 import sql from "../db/db.ts";
 
-async function getAppointmentByTutorId(userId: string, date: string) {
+type AppointmentDateQuery = {
+  year: number;
+  month: number;
+  day?: number;
+};
+
+function buildDateRange({ year, month, day }: AppointmentDateQuery) {
+  const startDate = day == null
+    ? new Date(year, month - 1, 1)
+    : new Date(year, month - 1, day);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = day == null
+    ? new Date(year, month, 1)
+    : new Date(year, month - 1, day + 1);
+  endDate.setHours(0, 0, 0, 0);
+
+  return { startDate, endDate };
+}
+
+async function getAppointmentByTutorId(
+  userId: string,
+  dateQuery: AppointmentDateQuery,
+) {
   try {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const { startDate, endDate } = buildDateRange(dateQuery);
 
     const appointments = await sql`
       select
@@ -42,13 +61,12 @@ async function getAppointmentByTutorId(userId: string, date: string) {
 }
 
 
-async function getAppointmentByStudentId(userId: string, date: string) {
+async function getAppointmentByStudentId(
+  userId: string,
+  dateQuery: AppointmentDateQuery,
+) {
   try {
-    const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const { startDate, endDate } = buildDateRange(dateQuery);
 
     const appointments = await sql`
       select
