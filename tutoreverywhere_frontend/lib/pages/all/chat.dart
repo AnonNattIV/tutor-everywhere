@@ -64,8 +64,8 @@ class _ChatPageState extends State<ChatPage> {
         : initialPeerUserId;
     _activePeerDisplayName = widget.initialPeerDisplayName?.trim() ?? '';
 
-    // Open the latest conversation by default when no specific peer is provided.
-    _loadConversations(autoselectIfNeeded: _activePeerUserId == null);
+    // Load conversation list first. Do not auto-open latest when entering chat tab.
+    _loadConversations();
     if (_activePeerUserId != null) {
       _loadMessages(_activePeerUserId!);
     }
@@ -99,10 +99,7 @@ class _ChatPageState extends State<ChatPage> {
     // Poll conversations/messages for near real-time updates without sockets.
     _pollTimer = Timer.periodic(_pollInterval, (_) {
       if (!mounted) return;
-      _loadConversations(
-        silent: true,
-        autoselectIfNeeded: _activePeerUserId == null,
-      );
+      _loadConversations(silent: true);
       final peerId = _activePeerUserId;
       if (peerId != null) {
         _loadMessages(peerId, silent: true);
@@ -299,10 +296,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Future<void> _loadConversations({
-    bool silent = false,
-    bool autoselectIfNeeded = false,
-  }) async {
+  Future<void> _loadConversations({bool silent = false}) async {
     if (!silent && mounted) {
       setState(() => _isLoadingConversations = true);
     }
@@ -348,7 +342,6 @@ class _ChatPageState extends State<ChatPage> {
         _isLoadingConversations = false;
       });
 
-      var shouldAutoselectLatest = autoselectIfNeeded;
       if (_activePeerUserId != null) {
         final matches = parsed.where((c) => c.partnerId == _activePeerUserId);
         final match = matches.isEmpty ? null : matches.first;
@@ -356,25 +349,6 @@ class _ChatPageState extends State<ChatPage> {
           setState(() {
             _activePeerDisplayName = _displayNameForConversation(match);
           });
-        } else if (match == null && mounted && parsed.isNotEmpty) {
-          // Active thread no longer exists; fall back to latest conversation.
-          setState(() {
-            _activePeerUserId = null;
-            _activePeerDisplayName = '';
-          });
-          shouldAutoselectLatest = true;
-        }
-      } else if (parsed.isNotEmpty) {
-        shouldAutoselectLatest = autoselectIfNeeded;
-      }
-
-      if (shouldAutoselectLatest && parsed.isNotEmpty) {
-        final first = parsed.first;
-        if (_activePeerUserId != first.partnerId) {
-          _openConversation(
-            first.partnerId,
-            _displayNameForConversation(first),
-          );
         }
       }
     } catch (e) {
@@ -716,8 +690,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: () =>
-          _loadConversations(autoselectIfNeeded: _activePeerUserId == null),
+      onRefresh: _loadConversations,
       child: ListView.separated(
         itemCount: _conversations.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
