@@ -22,7 +22,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
   static const List<String> _featuredSubjects = AppConstants.featuredSubjects;
 
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
   late final Dio _dio;
 
   // null = still loading, [] = loaded but empty

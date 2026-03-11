@@ -12,10 +12,14 @@ import 'package:tutoreverywhere_frontend/service/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StudentSchedulePage extends StatefulWidget {
-  const StudentSchedulePage({super.key, required this.userId, this.embedded = true});
+  const StudentSchedulePage({
+    super.key,
+    required this.userId,
+    this.embedded = true,
+  });
   final String userId;
   final bool embedded;
-  
+
   @override
   State<StudentSchedulePage> createState() => _StudentSchedulePageState();
 }
@@ -32,7 +36,7 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
   // API client
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   void _showSnack(String message) {
     if (!mounted) return;
@@ -62,15 +66,20 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
     _fetchAppointments();
   }
 
-   Future<void> _fetchAppointments() async {
+  Future<void> _fetchAppointments() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final appointments = await _client.getAppointmentByStudentId(widget.userId, year: _selectedDay?.year, month: _selectedDay?.month, day: _selectedDay?.day);
-      
+      final appointments = await _client.getAppointmentByStudentId(
+        widget.userId,
+        year: _selectedDay?.year,
+        month: _selectedDay?.month,
+        day: _selectedDay?.day,
+      );
+
       if (!mounted) return;
       setState(() {
         _appointments = appointments;
@@ -79,7 +88,10 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.response?.data['message'] ?? e.message ?? 'Failed to load appointments';
+        _errorMessage =
+            e.response?.data['message'] ??
+            e.message ??
+            'Failed to load appointments';
         _isLoading = false;
       });
       debugPrint('Dio Error fetching appointments: ${e.type} - ${e.message}');
@@ -94,12 +106,16 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null,
-    ));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true, error: true));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) => status != null,
+      ),
+    );
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
@@ -113,9 +129,7 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -138,9 +152,7 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -159,8 +171,18 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
                       ),
                       children: [
                         TextSpan(
-                          text: '${appointment.tutorFirstname} ${appointment.tutorLastname}',
-                          recognizer: TapGestureRecognizer()..onTap = () => Navigator.push(context, MaterialPageRoute<void>(builder: (context) => TutorProfilePage(userId: appointment.tutorId, embedded: true)))
+                          text:
+                              '${appointment.tutorFirstname} ${appointment.tutorLastname}',
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (context) => TutorProfilePage(
+                                  userId: appointment.tutorId,
+                                  embedded: true,
+                                ),
+                              ),
+                            ),
                         ),
                         if (appointment.studentVerified)
                           const WidgetSpan(
@@ -180,7 +202,7 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Date and time
             Row(
               children: [
@@ -195,9 +217,9 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
               ],
             ),
             const SizedBox(height: 8),
-            
+
             // Subject
-            if (appointment.subject != null) ... [
+            if (appointment.subject != null) ...[
               Row(
                 children: [
                   const Icon(Icons.book, size: 16, color: Colors.grey),
@@ -211,9 +233,10 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
                 ],
               ),
             ],
-            
+
             // Place name (if available)
-            if (appointment.placeName != null && appointment.placeName!.isNotEmpty) ...[
+            if (appointment.placeName != null &&
+                appointment.placeName!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -228,21 +251,18 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
                 ],
               ),
             ],
-            
+
             // Description (if available)
-            if (appointment.description != null) ... [
+            if (appointment.description != null) ...[
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Row(
-                  children: [
-                    Text(appointment.description!)
-                  ]
-                ),
-              )
+                child: Row(children: [Text(appointment.description!)]),
+              ),
             ],
 
-            if (appointment.latitude != null && appointment.longitude != null) ...[
+            if (appointment.latitude != null &&
+                appointment.longitude != null) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -259,10 +279,10 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
                             text: 'View coordinate in map',
                             recognizer: TapGestureRecognizer()
                               ..onTap = () => _openGoogleMapsNavigation(
-                                    appointment.latitude!,
-                                    appointment.longitude!
-                                  ),
-                          )
+                                appointment.latitude!,
+                                appointment.longitude!,
+                              ),
+                          ),
                         ],
                       ),
                     ),
@@ -270,9 +290,9 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
                 ],
               ),
             ],
-          ]
-        )
-      )
+          ],
+        ),
+      ),
     );
   }
 
@@ -281,83 +301,81 @@ class _StudentSchedulePageState extends State<StudentSchedulePage> {
     final isOwner = context.read<AuthProvider>().userId == widget.userId;
 
     final bodyContent = CustomScrollView(
-      slivers:
-        [
-          SliverToBoxAdapter(
-            child: TableCalendar(
-              firstDay: DateTime.utc(2025, 1, 1),
-              lastDay: DateTime.utc(2030, 1, 1),
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-            
-              selectedDayPredicate: (day) {
-                return isSameDay(_selectedDay, day);
-              },
-            
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-                _fetchAppointments();
-              },
-            
-              onFormatChanged: (format) {
-                if (_calendarFormat != format) {
-                  setState(() {
-                    _calendarFormat = format;
-                  });
-                }
-              },
-            
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-            ),
-          ),
+      slivers: [
+        SliverToBoxAdapter(
+          child: TableCalendar(
+            firstDay: DateTime.utc(2025, 1, 1),
+            lastDay: DateTime.utc(2030, 1, 1),
+            focusedDay: _focusedDay,
+            calendarFormat: _calendarFormat,
 
-          if (_selectedDay != null)
-            SliverToBoxAdapter(
+            selectedDayPredicate: (day) {
+              return isSameDay(_selectedDay, day);
+            },
+
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+              _fetchAppointments();
+            },
+
+            onFormatChanged: (format) {
+              if (_calendarFormat != format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              }
+            },
+
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+          ),
+        ),
+
+        if (_selectedDay != null)
+          SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
                 DateFormat('d MMMM yyyy').format(_selectedDay!),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
 
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_errorMessage != null)
-            SliverFillRemaining(
-              child: Center(child: Text(_errorMessage!)),
-            )
-          else if (_appointments.isEmpty)
-            const SliverFillRemaining(
-              child: Center(child: Text('No appointments for this day')),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => (isOwner) ? _buildAppointmentCard(_appointments[index]) : _buildHiddenAppointmentCard(_appointments[index]),
-                childCount: _appointments.length,
-              ),
+        if (_isLoading)
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_errorMessage != null)
+          SliverFillRemaining(child: Center(child: Text(_errorMessage!)))
+        else if (_appointments.isEmpty)
+          const SliverFillRemaining(
+            child: Center(child: Text('No appointments for this day')),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => (isOwner)
+                  ? _buildAppointmentCard(_appointments[index])
+                  : _buildHiddenAppointmentCard(_appointments[index]),
+              childCount: _appointments.length,
             ),
-        ],
+          ),
+      ],
     );
 
     if (widget.embedded) {
       return bodyContent;
     } else {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Schedule'),
-          centerTitle: true,
-        ),
-        body: bodyContent
+        appBar: AppBar(title: const Text('Schedule'), centerTitle: true),
+        body: bodyContent,
       );
     }
   }

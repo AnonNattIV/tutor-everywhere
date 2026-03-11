@@ -43,7 +43,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   // Dio client setup
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   @override
   void initState() {

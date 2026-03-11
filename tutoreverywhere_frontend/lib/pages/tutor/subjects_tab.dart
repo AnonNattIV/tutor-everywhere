@@ -32,7 +32,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
 
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   @override
   void initState() {
@@ -42,16 +42,16 @@ class _SubjectsTabState extends State<SubjectsTab> {
   }
 
   void _setupDio() {
-    _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      contentType: "application/json",
-      validateStatus: (status) => status != null,
-    ));
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      error: true,
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        contentType: "application/json",
+        validateStatus: (status) => status != null,
+      ),
+    );
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
     _client = RestClient(_dio, baseUrl: _baseUrl);
   }
 
@@ -64,7 +64,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
 
     try {
       final subjects = await _client.getTutorSubjectsByTutorId(widget.tutorId);
-      
+
       if (!mounted) return;
       setState(() {
         _subjects = subjects;
@@ -73,7 +73,10 @@ class _SubjectsTabState extends State<SubjectsTab> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e.response?.data['message'] ?? e.message ?? 'Failed to load subjects';
+        _errorMessage =
+            e.response?.data['message'] ??
+            e.message ??
+            'Failed to load subjects';
         _isLoading = false;
       });
       debugPrint('Dio Error fetching subjects: ${e.type} - ${e.message}');
@@ -90,24 +93,25 @@ class _SubjectsTabState extends State<SubjectsTab> {
   // Add subject via API
   Future<void> _addSubject(String subject, String priceStr) async {
     final price = (double.tryParse(priceStr) ?? 0).round();
-    
+
     setState(() => _isAddingSubject = true);
-    
+
     try {
       final token = context.read<AuthProvider>().token;
       if (token == null) throw Exception('Authentication required');
-      
+
       await _client.addTutorSubject(token, subject, price);
-      
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Subject added successfully!')),
       );
       await _fetchSubjects();
     } on DioException catch (e) {
       if (!mounted) return;
-      final message = e.response?.data['message'] ?? e.message ?? 'Failed to add subject';
+      final message =
+          e.response?.data['message'] ?? e.message ?? 'Failed to add subject';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -132,24 +136,25 @@ class _SubjectsTabState extends State<SubjectsTab> {
   // Update subject price via API
   Future<void> _updateSubjectPrice(String subject, String priceStr) async {
     final price = (double.tryParse(priceStr) ?? 0).round();
-    
+
     setState(() => _isUpdatingPrice = true);
-    
+
     try {
       final token = context.read<AuthProvider>().token;
       if (token == null) throw Exception('Authentication required');
-      
+
       await _client.updateTutorSubjectPrice(token, subject, price);
-      
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Price updated successfully!')),
       );
       await _fetchSubjects();
     } on DioException catch (e) {
       if (!mounted) return;
-      final message = e.response?.data['message'] ?? e.message ?? 'Failed to update price';
+      final message =
+          e.response?.data['message'] ?? e.message ?? 'Failed to update price';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -176,9 +181,9 @@ class _SubjectsTabState extends State<SubjectsTab> {
     final formKey = GlobalKey<FormState>();
     String? selectedSubject;
     String priceInput = '';
-    
+
     final List<String> subjectOptions = AppConstants.featuredSubjects;
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -244,8 +249,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: _isAddingSubject || selectedSubject == null 
-                      ? null 
+                  onPressed: _isAddingSubject || selectedSubject == null
+                      ? null
                       : () async {
                           if (formKey.currentState!.validate()) {
                             formKey.currentState!.save();
@@ -273,7 +278,7 @@ class _SubjectsTabState extends State<SubjectsTab> {
   void _showEditPriceDialog(String subjectName, int currentPrice) {
     final formKey = GlobalKey<FormState>();
     String priceInput = currentPrice.toString();
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -321,13 +326,15 @@ class _SubjectsTabState extends State<SubjectsTab> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: _isUpdatingPrice ? null : () async {
-                if (formKey.currentState!.validate()) {
-                  formKey.currentState!.save();
-                  await _updateSubjectPrice(subjectName, priceInput);
-                  if (mounted) Navigator.pop(context);
-                }
-              },
+              onPressed: _isUpdatingPrice
+                  ? null
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        formKey.currentState!.save();
+                        await _updateSubjectPrice(subjectName, priceInput);
+                        if (mounted) Navigator.pop(context);
+                      }
+                    },
               child: _isUpdatingPrice
                   ? const SizedBox(
                       width: 20,
@@ -358,10 +365,12 @@ class _SubjectsTabState extends State<SubjectsTab> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: _isDeletingSubject ? null : () async {
-              Navigator.pop(context);
-              await _deleteSubject(subjectName);
-            },
+            onPressed: _isDeletingSubject
+                ? null
+                : () async {
+                    Navigator.pop(context);
+                    await _deleteSubject(subjectName);
+                  },
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
@@ -385,22 +394,25 @@ class _SubjectsTabState extends State<SubjectsTab> {
   // Delete subject via API
   Future<void> _deleteSubject(String subject) async {
     setState(() => _isDeletingSubject = true);
-    
+
     try {
       final token = context.read<AuthProvider>().token;
       if (token == null) throw Exception('Authentication required');
-      
+
       await _client.deleteTutorSubject(token, subject);
-      
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Subject deleted successfully!')),
       );
       await _fetchSubjects();
     } on DioException catch (e) {
       if (!mounted) return;
-      final message = e.response?.data['message'] ?? e.message ?? 'Failed to delete subject';
+      final message =
+          e.response?.data['message'] ??
+          e.message ??
+          'Failed to delete subject';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -432,13 +444,36 @@ class _SubjectsTabState extends State<SubjectsTab> {
 
   IconData _getSubjectIcon(String subjectName) {
     final name = subjectName.toLowerCase();
-    if (name.contains('math') || name.contains('algebra') || name.contains('calculus')) return Icons.calculate;
-    if (name.contains('english') || name.contains('language') || name.contains('literature')) return Icons.menu_book;
-    if (name.contains('science') || name.contains('biology') || name.contains('chemistry') || name.contains('physics')) return Icons.science;
-    if (name.contains('history') || name.contains('social') || name.contains('geography')) return Icons.history_edu;
-    if (name.contains('music') || name.contains('art') || name.contains('drawing')) return Icons.music_note;
-    if (name.contains('programming') || name.contains('code') || name.contains('computer') || name.contains('web')) return Icons.code;
-    if (name.contains('business') || name.contains('economy') || name.contains('finance')) return Icons.account_balance;
+    if (name.contains('math') ||
+        name.contains('algebra') ||
+        name.contains('calculus'))
+      return Icons.calculate;
+    if (name.contains('english') ||
+        name.contains('language') ||
+        name.contains('literature'))
+      return Icons.menu_book;
+    if (name.contains('science') ||
+        name.contains('biology') ||
+        name.contains('chemistry') ||
+        name.contains('physics'))
+      return Icons.science;
+    if (name.contains('history') ||
+        name.contains('social') ||
+        name.contains('geography'))
+      return Icons.history_edu;
+    if (name.contains('music') ||
+        name.contains('art') ||
+        name.contains('drawing'))
+      return Icons.music_note;
+    if (name.contains('programming') ||
+        name.contains('code') ||
+        name.contains('computer') ||
+        name.contains('web'))
+      return Icons.code;
+    if (name.contains('business') ||
+        name.contains('economy') ||
+        name.contains('finance'))
+      return Icons.account_balance;
     return Icons.school_outlined;
   }
 
@@ -460,7 +495,9 @@ class _SubjectsTabState extends State<SubjectsTab> {
         itemBuilder: (context, index) => Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Container(
             padding: const EdgeInsets.all(16),
             height: 72,
@@ -513,13 +550,17 @@ class _SubjectsTabState extends State<SubjectsTab> {
               const SizedBox(height: 16),
               Text(
                 'Unable to load subjects',
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
-                style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -544,17 +585,25 @@ class _SubjectsTabState extends State<SubjectsTab> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bookmark_add_outlined, size: 72, color: colorScheme.onSurface.withOpacity(0.3)),
+                  Icon(
+                    Icons.bookmark_add_outlined,
+                    size: 72,
+                    color: colorScheme.onSurface.withOpacity(0.3),
+                  ),
                   const SizedBox(height: 20),
                   Text(
                     'No subjects yet',
-                    style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '${widget.tutorName} hasn\'t added any teaching subjects yet.',
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -562,15 +611,15 @@ class _SubjectsTabState extends State<SubjectsTab> {
             ),
           ),
           if (isOwner)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              onPressed: _showAddSubjectDialog,
-              child: const Icon(Icons.add),
-              tooltip: 'Add Subject',
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                onPressed: _showAddSubjectDialog,
+                child: const Icon(Icons.add),
+                tooltip: 'Add Subject',
+              ),
             ),
-          ),
         ],
       );
     }
@@ -605,9 +654,15 @@ class _SubjectsTabState extends State<SubjectsTab> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 0,
+                      horizontal: 16,
+                    ),
                     filled: true,
                     fillColor: colorScheme.surfaceContainerLow,
                   ),
@@ -621,7 +676,9 @@ class _SubjectsTabState extends State<SubjectsTab> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     '${_filteredSubjects.length} result${_filteredSubjects.length == 1 ? '' : 's'}',
-                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               if (_searchQuery.isNotEmpty) const SizedBox(height: 8),
@@ -635,16 +692,24 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off, size: 48, color: colorScheme.onSurface.withOpacity(0.4)),
+                              Icon(
+                                Icons.search_off,
+                                size: 48,
+                                color: colorScheme.onSurface.withOpacity(0.4),
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 'No matches found',
-                                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Try a different search term',
-                                style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -658,7 +723,9 @@ class _SubjectsTabState extends State<SubjectsTab> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             elevation: 1,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Row(
@@ -677,20 +744,23 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  
+
                                   // Subject name + price
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           subject.subject,
-                                          style: textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          semanticsLabel: 'Subject: ${subject.subject}',
+                                          semanticsLabel:
+                                              'Subject: ${subject.subject}',
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
@@ -699,12 +769,13 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                             color: colorScheme.primary,
                                             fontWeight: FontWeight.w500,
                                           ),
-                                          semanticsLabel: 'Price: ${subject.price} baht per hour',
+                                          semanticsLabel:
+                                              'Price: ${subject.price} baht per hour',
                                         ),
                                       ],
                                     ),
                                   ),
-                                  
+
                                   // Edit and Delete buttons
                                   if (isOwner)
                                     Row(
@@ -712,9 +783,12 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                       children: [
                                         // Edit price button (pencil icon)
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined, size: 20),
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            size: 20,
+                                          ),
                                           onPressed: () => _showEditPriceDialog(
-                                            subject.subject, 
+                                            subject.subject,
                                             subject.price,
                                           ),
                                           tooltip: 'Edit price',
@@ -727,8 +801,14 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                         ),
                                         // Delete button (trash icon)
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 20),
-                                          onPressed: () => _confirmDeleteSubject(subject.subject),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                          ),
+                                          onPressed: () =>
+                                              _confirmDeleteSubject(
+                                                subject.subject,
+                                              ),
                                           tooltip: 'Delete subject',
                                           color: colorScheme.error,
                                           constraints: const BoxConstraints(
@@ -739,9 +819,8 @@ class _SubjectsTabState extends State<SubjectsTab> {
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -752,15 +831,15 @@ class _SubjectsTabState extends State<SubjectsTab> {
         ),
         // Floating Action Button for adding subjects
         if (isOwner)
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: _showAddSubjectDialog,
-            child: const Icon(Icons.add),
-            tooltip: 'Add Subject',
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              onPressed: _showAddSubjectDialog,
+              child: const Icon(Icons.add),
+              tooltip: 'Add Subject',
+            ),
           ),
-        ),
       ],
     );
   }

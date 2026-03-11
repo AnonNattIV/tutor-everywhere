@@ -26,7 +26,7 @@ class _ReviewsTabState extends State<ReviewsTab> {
 
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   // Predefined subjects for dropdown
   static const List<String> _availableSubjects = AppConstants.featuredSubjects;

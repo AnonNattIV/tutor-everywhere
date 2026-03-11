@@ -95,7 +95,22 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LoginPage();
+    final authProvider = context.watch<AuthProvider>();
+
+    if (!authProvider.isLoggedIn) {
+      return const LoginPage();
+    }
+
+    switch (authProvider.role) {
+      case "student":
+        return const StudentHomePage();
+      case "tutor":
+        return const TutorHomePage();
+      case "admin":
+        return const AdminHomePage();
+      default:
+        return const LoginPage();
+    }
   }
 }
 
@@ -116,23 +131,21 @@ class _LoginPageState extends State<LoginPage> {
         Auth(username: username, password: password),
       );
       if (!mounted) return false;
-      var token = testResponse.data.token;
-      var jwtData = JWT.decode(token);
-      if (token != null) {
-        // Save token + role in provider so other screens can authorize requests.
-        await context.read<AuthProvider>().login(
-          token,
-          jwtData.payload['userId'],
-          jwtData.payload['role'],
-        );
-        print(context.read<AuthProvider>().userId);
+      final token = testResponse.data.token;
+      final jwtData = JWT.decode(token);
+      final userId = jwtData.payload['userId']?.toString() ?? '';
+      final role = jwtData.payload['role']?.toString() ?? '';
+
+      if (token.isEmpty || userId.isEmpty || role.isEmpty) {
+        throw Exception('Invalid login response');
       }
-      print(token);
-      print(jwtData.payload['userId']);
-      print(jwtData.payload['iat']);
-      print(jwtData.payload['exp']);
+
+      // Save token + identity in provider so startup can restore session.
+      await context.read<AuthProvider>().login(token, userId, role);
+      if (!mounted) return false;
+
       // Route to role-specific home immediately after successful login.
-      switch (jwtData.payload['role']) {
+      switch (role) {
         case "student":
           Navigator.pushAndRemoveUntil(
             context,
@@ -154,6 +167,8 @@ class _LoginPageState extends State<LoginPage> {
             (route) => false,
           );
           break;
+        default:
+          throw Exception('Unknown role: $role');
       }
       return true;
     } on DioException catch (e) {
@@ -175,6 +190,27 @@ class _LoginPageState extends State<LoginPage> {
               SimpleDialogOption(
                 onPressed: () => Navigator.pop(context),
                 child: Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return SimpleDialog(
+            title: const Text("Error"),
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(e.toString()),
+              ),
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
               ),
             ],
           );

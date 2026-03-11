@@ -12,6 +12,17 @@ class AppConstants {
     return resolveApiUrl('assets/pfp/default_pfp.png');
   }
 
+  static String _normalizeRelativePath(String path) {
+    var normalized = path.trim().replaceAll('\\', '/');
+
+    final assetsIndex = normalized.toLowerCase().indexOf('assets/');
+    if (assetsIndex > 0) {
+      normalized = normalized.substring(assetsIndex);
+    }
+
+    return normalized.replaceFirst(RegExp(r'^/+'), '');
+  }
+
   static String resolveApiUrl(String? path, {String? fallbackRelativePath}) {
     final trimmedPath = path?.trim() ?? '';
     if (trimmedPath.isEmpty) {
@@ -20,7 +31,7 @@ class AppConstants {
       if (fallback.startsWith('http://') || fallback.startsWith('https://')) {
         return fallback;
       }
-      return '$normalizedBaseUrl${fallback.replaceFirst(RegExp(r'^/+'), '')}';
+      return '$normalizedBaseUrl${_normalizeRelativePath(fallback)}';
     }
 
     if (trimmedPath.startsWith('http://') ||
@@ -28,7 +39,7 @@ class AppConstants {
       return trimmedPath;
     }
 
-    return '$normalizedBaseUrl${trimmedPath.replaceFirst(RegExp(r'^/+'), '')}';
+    return '$normalizedBaseUrl${_normalizeRelativePath(trimmedPath)}';
   }
 
   static const List<String> featuredSubjects = [

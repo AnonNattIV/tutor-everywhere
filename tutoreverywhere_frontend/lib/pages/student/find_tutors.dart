@@ -18,7 +18,7 @@ class _FindTutorsPageState extends State<FindTutorsPage> {
   final TextEditingController _searchController = TextEditingController();
 
   late final Dio _dio;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   List<FindTutors> _tutors = [];
   bool _isLoading = true;

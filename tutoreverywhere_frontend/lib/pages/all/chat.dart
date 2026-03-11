@@ -31,7 +31,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   static const Duration _pollInterval = Duration(seconds: 4);
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
   // Fallback center (Bangkok) when GPS is unavailable.
   static const LatLng _defaultMapCenter = LatLng(13.7563, 100.5018);
 
@@ -1407,12 +1407,14 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final canSend = _selectedPoint != null;
-    final height = MediaQuery.of(context).size.height * 0.75;
+    final mediaQuery = MediaQuery.of(context);
+    final height = mediaQuery.size.height * 0.75;
+    final bottomInset = mediaQuery.viewPadding.bottom;
 
     return SizedBox(
       height: height,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+        padding: EdgeInsets.fromLTRB(12, 12, 12, 8 + bottomInset),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

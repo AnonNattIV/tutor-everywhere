@@ -65,7 +65,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
   // API client
   late final Dio _dio;
   late final RestClient _client;
-  static const String _baseUrl = AppConstants.baseUrl;
+  static String get _baseUrl => AppConstants.normalizedBaseUrl;
 
   bool _isUploadingPromptPay = false;
   bool _isUploadingVerification = false;
@@ -105,11 +105,17 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       final token = context.read<AuthProvider>().token;
       if (token == null) throw Exception('Not authenticated');
 
-      await _client.uploadTutorPromptPayPicture(token, File(pickedFile.path));
+      await _client.uploadTutorVerificationPicture(
+        token,
+        File(pickedFile.path),
+      );
+      await _fetchTutorData();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PromptPay picture updated successfully')),
+        const SnackBar(
+          content: Text('Verification picture updated successfully'),
+        ),
       );
     } on DioException catch (e) {
       if (!mounted) return;
@@ -149,6 +155,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       if (token == null) throw Exception('Not authenticated');
 
       await _client.uploadTutorPromptPayPicture(token, File(pickedFile.path));
+      await _fetchTutorData();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
