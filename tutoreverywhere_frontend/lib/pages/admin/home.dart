@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tutoreverywhere_frontend/main.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/pages/admin/id_verify.dart';
+import 'package:tutoreverywhere_frontend/pages/support/admin_support.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
-import '../all/chat.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -47,7 +47,11 @@ class _TutorHomePageState extends State<AdminHomePage> {
               TextButton(
                 onPressed: () {
                   context.read<AuthProvider>().logout();
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => HomePage()),
+                    (route) => false,
+                  );
                   print("User Logged Out");
                 },
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -91,7 +95,7 @@ class _TutorHomePageState extends State<AdminHomePage> {
                     SizedBox(width: 12),
                     Text("Settings"),
                   ],
-                )
+                ),
               ),
 
               PopupMenuItem<String>(
@@ -105,7 +109,7 @@ class _TutorHomePageState extends State<AdminHomePage> {
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -116,12 +120,9 @@ class _TutorHomePageState extends State<AdminHomePage> {
         },
         indicatorColor: Colors.transparent,
         selectedIndex: currentPageIndex,
-        destinations: destinations
+        destinations: destinations,
       ),
-      body: <Widget>[
-        Center(child: Text("Chat Page")),
-        IdVerifyPage(),
-      ][currentPageIndex]
+      body: <Widget>[AdminSupportUsersPage(), IdVerifyPage()][currentPageIndex],
     );
-  } 
+  }
 }

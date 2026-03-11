@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/students/data.dart';
 import 'package:tutoreverywhere_frontend/pages/student/schedule.dart';
+import 'package:tutoreverywhere_frontend/pages/support/support_entry.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
@@ -56,7 +57,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       BaseOptions(
         baseUrl: _baseUrl,
         contentType: "application/json",
-        validateStatus: (status) => status != null && status >= 200 && status < 300,
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 300,
       ),
     );
 
@@ -134,22 +136,19 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Future<void> _uploadProfilePicture(File imageFile) async {
     try {
       final token = context.read<AuthProvider>().token;
-      
+
       if (token == null) {
         throw Exception('No authentication token found');
       }
 
       // Call the Retrofit API endpoint
-      await _client.uploadStudentProfilePicture(
-        token,
-        imageFile,
-      );
+      await _client.uploadStudentProfilePicture(token, imageFile);
 
       // Refresh student data to get updated profile picture URL
       await _fetchStudentData();
 
       if (!mounted) return;
-      
+
       setState(() {
         _isUploadingImage = false;
       });
@@ -158,7 +157,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile picture updated successfully')),
       );
-
     } on DioException catch (e) {
       setState(() {
         _isUploadingImage = false;
@@ -175,7 +173,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
       );
-      
+
       debugPrint('Upload error: ${e.message}');
     } catch (e) {
       setState(() {
@@ -185,9 +183,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-      
+
       debugPrint('Unexpected error: $e');
     }
   }
@@ -393,7 +394,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  onTap: (_isUploadingImage || !isOwner) ? null : _showImageSourceActionSheet,
+                  onTap: (_isUploadingImage || !isOwner)
+                      ? null
+                      : _showImageSourceActionSheet,
                   child: CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.deepPurple.shade100,
@@ -412,11 +415,15 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: _isUploadingImage ? null : _showImageSourceActionSheet,
+                      onTap: _isUploadingImage
+                          ? null
+                          : _showImageSourceActionSheet,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: _isUploadingImage ? Colors.grey : Colors.deepPurple,
+                          color: _isUploadingImage
+                              ? Colors.grey
+                              : Colors.deepPurple,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
@@ -426,7 +433,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Icon(
@@ -557,7 +566,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               ),
             ),
           ),
-          if (isOwner) ... [
+          if (isOwner) ...[
             const SizedBox(height: 30),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -573,12 +582,34 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _buildMenuItem(Icons.history, 'Schedule'),
+                  _buildMenuItem(
+                    Icons.history,
+                    'Schedule',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentSchedulePage(
+                          userId: widget.userId,
+                          embedded: false,
+                        ),
+                      ),
+                    ),
+                  ),
+                  _buildMenuItem(
+                    Icons.support_agent,
+                    'Support',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SupportEntryPage(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-          ]
+          ],
         ],
       ),
     );
@@ -597,7 +628,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             ),
             title: Text(
               '$firstName $lastName',
-              style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             centerTitle: true,
           ),
@@ -606,10 +640,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       } else {
         // Case 2: Embedded in parent with its own AppBar (e.g., StudentHomePage tab)
         // → Just return content wrapped in Material (no duplicate AppBar)
-        return Material(
-          color: Colors.grey.shade50,
-          child: profileContent,
-        );
+        return Material(color: Colors.grey.shade50, child: profileContent);
       }
     }
 
@@ -660,7 +691,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title) {
+  Widget _buildMenuItem(IconData icon, String title, {VoidCallback? onTap}) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: Colors.grey.shade700, size: 22),
@@ -673,7 +704,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         size: 16,
         color: Colors.grey,
       ),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StudentSchedulePage(userId: widget.userId, embedded: false,))),
+      onTap: onTap,
     );
   }
 

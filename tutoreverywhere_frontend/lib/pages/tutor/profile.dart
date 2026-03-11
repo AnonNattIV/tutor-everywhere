@@ -8,6 +8,7 @@ import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/tutors/data.dart';
 import 'package:tutoreverywhere_frontend/pages/all/chat.dart';
 import 'package:tutoreverywhere_frontend/pages/tutor/schedule.dart';
+import 'package:tutoreverywhere_frontend/pages/support/support_entry.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
@@ -114,14 +115,19 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          content: Text(
+            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isUploadingVerification = false);
@@ -152,20 +158,25 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.response?.data['message'] ?? 'Update failed'}'),
+          content: Text(
+            'Error: ${e.response?.data['message'] ?? 'Update failed'}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isUploadingPromptPay = false);
     }
   }
-  
+
   Future<void> _fetchTutorData() async {
     try {
       final tutor = await _client.getTutorDataById(widget.userId);
@@ -839,8 +850,7 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
             ),
           ],
 
-          if (!isOwner)
-            const SizedBox(height: 20),
+          if (!isOwner) const SizedBox(height: 20),
 
           // Action Buttons
           if (!isOwner)
@@ -884,34 +894,47 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
           // Upload verification photo update
           // PromptPay Update
           if (isOwner) ...[
-            if (!verified!) ... [
+            if (!verified!) ...[
               ElevatedButton.icon(
-                onPressed: _isUploadingVerification ? null : _pickAndUploadVerificationImage,
+                onPressed: _isUploadingVerification
+                    ? null
+                    : _pickAndUploadVerificationImage,
                 icon: _isUploadingVerification
                     ? const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Icon(Icons.qr_code, size: 18, color: Colors.white),
                 label: Text(
-                  _isUploadingVerification ? 'Uploading...' : 'Upload verification photo',
+                  _isUploadingVerification
+                      ? 'Uploading...'
+                      : 'Upload verification photo',
                   style: const TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple.shade600,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ],
-            
+
             ElevatedButton.icon(
-              onPressed: _isUploadingPromptPay ? null : _pickAndUploadPromptPayImage,
+              onPressed: _isUploadingPromptPay
+                  ? null
+                  : _pickAndUploadPromptPayImage,
               icon: _isUploadingPromptPay
                   ? const SizedBox(
                       width: 18,
@@ -923,14 +946,21 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                     )
                   : const Icon(Icons.qr_code, size: 18, color: Colors.white),
               label: Text(
-                _isUploadingPromptPay ? 'Uploading...' : 'Update PromptPay Picture',
+                _isUploadingPromptPay
+                    ? 'Uploading...'
+                    : 'Update PromptPay Picture',
                 style: const TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple.shade600,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
             ),
           ],
@@ -977,6 +1007,12 @@ class _TutorProfilePageState extends State<TutorProfilePage> {
                   onCancelEditPreferredPlace: _cancelPreferredPlaceEdit,
                   onSavePreferredPlace: _savePreferredPlace,
                   canEdit: isOwner,
+                  onOpenSupport: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SupportEntryPage(),
+                    ),
+                  ),
                 ),
                 // Reviews Tab
                 ReviewsTab(tutorId: widget.userId, tutorName: fullName),

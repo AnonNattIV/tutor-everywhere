@@ -18,6 +18,7 @@ class ProfileTab extends StatelessWidget {
     required this.onCancelEditPreferredPlace,
     required this.onSavePreferredPlace,
     this.canEdit = false,
+    this.onOpenSupport,
   });
 
   final String dateOfBirth;
@@ -34,6 +35,7 @@ class ProfileTab extends StatelessWidget {
   final VoidCallback onCancelEditPreferredPlace;
   final VoidCallback onSavePreferredPlace;
   final bool canEdit;
+  final VoidCallback? onOpenSupport;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class ProfileTab extends StatelessWidget {
           // Date of Birth (read-only)
           _buildInfoRow('Date of birth', dateOfBirth),
           const SizedBox(height: 12),
-          
+
           // Preferred Place (editable)
           _buildEditableRow(
             label: 'Preferred place',
@@ -59,7 +61,7 @@ class ProfileTab extends StatelessWidget {
             hintText: 'e.g., Chatuchak / Home / Cafe',
           ),
           const SizedBox(height: 16),
-          
+
           // Bio (editable)
           _buildEditableRow(
             label: 'Bio',
@@ -73,6 +75,21 @@ class ProfileTab extends StatelessWidget {
             hintText: 'Tell students about yourself...',
             maxLines: 4,
           ),
+          if (canEdit && onOpenSupport != null) ...[
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.support_agent_outlined),
+              title: const Text(
+                'Support',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: const Text('Talk to admin support'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: onOpenSupport,
+            ),
+          ],
         ],
       ),
     );
@@ -83,8 +100,14 @@ class ProfileTab extends StatelessWidget {
       text: TextSpan(
         style: const TextStyle(fontSize: 14, color: Colors.black87),
         children: [
-          TextSpan(text: '$label ', style: const TextStyle(fontWeight: FontWeight.w600)),
-          TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -109,7 +132,11 @@ class ProfileTab extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
             if (canEdit)
               IconButton(
@@ -132,7 +159,10 @@ class ProfileTab extends StatelessWidget {
               hintText: hintText,
               border: const OutlineInputBorder(),
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
             ),
           ),
           const SizedBox(height: 8),
