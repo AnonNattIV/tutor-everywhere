@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import fs from "fs/promises";
 import path from "path";
 import { v7 as uuidv7 } from "uuid";
@@ -6,7 +6,6 @@ import { v7 as uuidv7 } from "uuid";
 type ObjectStorageConfig = {
   bucket: string;
   endpoint?: string;
-  publicUrl: string;
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
@@ -44,27 +43,6 @@ function normalizeUrl(url: string) {
   return url.replace(/\/+$/, "");
 }
 
-function buildPublicUrlFromEndpoint(
-  endpoint: string,
-  bucket: string,
-  forcePathStyle: boolean,
-) {
-  const normalizedEndpoint = normalizeUrl(endpoint);
-
-  try {
-    const endpointUrl = new URL(normalizedEndpoint);
-    if (forcePathStyle) {
-      return `${endpointUrl.origin}/${bucket}`;
-    }
-    return `${endpointUrl.protocol}//${bucket}.${endpointUrl.host}`;
-  } catch {
-    if (forcePathStyle) {
-      return `${normalizedEndpoint}/${bucket}`;
-    }
-    return `https://${bucket}.${normalizedEndpoint.replace(/^https?:\/\//i, "")}`;
-  }
-}
-
 function resolveImageExtension(originalName: string, mimeType: string) {
   const extensionFromName = path.extname(originalName || "").toLowerCase();
   if (extensionFromName) {
@@ -91,6 +69,11 @@ function resolveUploadsPublicUrl() {
     firstEnv("UPLOADS_PUBLIC_URL", "UPLOAD_PUBLIC_URL", "FILE_PUBLIC_URL") ||
     "/uploads";
   return normalizeUrl(configured);
+}
+
+function buildUploadUrl(key: string) {
+  const normalizedKey = key.replace(/^\/+/, "");
+  return `${resolveUploadsPublicUrl()}/${normalizedKey}`;
 }
 
 function shouldForceLocalUpload() {
@@ -128,13 +111,6 @@ function loadConfig(): ObjectStorageConfig | null {
     "AWS_ENDPOINT_URL_S3",
     "AWS_ENDPOINT_URL",
   );
-  const publicUrl = firstEnv(
-    "OBJECT_STORAGE_PUBLIC_URL",
-    "S3_PUBLIC_URL",
-    "AWS_S3_PUBLIC_URL",
-    "AWS_PUBLIC_URL",
-    "ASSET_BASE_URL",
-  );
   const accessKeyId = firstEnv(
     "OBJECT_STORAGE_ACCESS_KEY_ID",
     "S3_ACCESS_KEY_ID",
@@ -163,20 +139,12 @@ function loadConfig(): ObjectStorageConfig | null {
 
   const missing = [];
   if (!bucket) missing.push("OBJECT_STORAGE_BUCKET");
-  const resolvedPublicUrl = publicUrl
-    ? normalizeUrl(publicUrl)
-    : endpoint
-      ? buildPublicUrlFromEndpoint(endpoint, bucket, forcePathStyle)
-      : "";
-
-  if (!resolvedPublicUrl) missing.push("OBJECT_STORAGE_PUBLIC_URL");
   if (!accessKeyId) missing.push("OBJECT_STORAGE_ACCESS_KEY_ID");
   if (!secretAccessKey) missing.push("OBJECT_STORAGE_SECRET_ACCESS_KEY");
 
   const hasAnyObjectStorageSetting = !!(
     bucket ||
     endpoint ||
-    publicUrl ||
     accessKeyId ||
     secretAccessKey
   );
@@ -195,7 +163,6 @@ function loadConfig(): ObjectStorageConfig | null {
   cachedConfig = {
     bucket,
     endpoint: endpoint || undefined,
-    publicUrl: resolvedPublicUrl,
     accessKeyId,
     secretAccessKey,
     region,
@@ -240,7 +207,7 @@ async function uploadImageToLocalStorage(
   await fs.mkdir(destinationDir, { recursive: true });
   await fs.writeFile(destinationPath, file.buffer);
 
-  return `${resolveUploadsPublicUrl()}/${safeFolder}/${fileName}`;
+  return buildUploadUrl(`${safeFolder}/${fileName}`);
 }
 
 export async function uploadImageToObjectStorage(
@@ -274,5 +241,38 @@ export async function uploadImageToObjectStorage(
     }),
   );
 
-  return `${config.publicUrl}/${key}`;
+  return buildUploadUrl(key);
+}
+
+export async function getImageFromObjectStorage(key: string) {
+  if (shouldForceLocalUpload()) {
+    return null;
+  }
+
+  const config = loadConfig();
+  if (!config) {
+    return null;
+  }
+
+  try {
+    const client = getClient();
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: config.bucket,
+        Key: key,
+      }),
+    );
+
+    return {
+      body: response.Body,
+      contentType: response.ContentType?.toString(),
+    };
+  } catch (err: any) {
+    const status = err?.$metadata?.httpStatusCode;
+    const errorName = err?.name || err?.Code;
+    if (status === 404 || errorName === "NoSuchKey" || errorName === "NotFound") {
+      return null;
+    }
+    throw err;
+  }
 }

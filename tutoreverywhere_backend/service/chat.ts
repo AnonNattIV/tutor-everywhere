@@ -20,9 +20,10 @@ const chatService = express.Router();
 
 chatService.use(bodyParser.json());
 
-// ensureChatTables().catch((err) => {
-//   console.error("Chat table initialization failed", err);
-// });
+// Safe to call repeatedly because setup uses IF NOT EXISTS.
+ensureChatTables().catch((err) => {
+  console.error("Chat table initialization failed", err);
+});
 
 const chatImageUpload = multer({
   storage: multer.memoryStorage(),
@@ -194,8 +195,11 @@ chatService.post(
       const caption = req.body?.text?.toString?.();
       const message = await sendImageMessage(userId, otherUserId, imagePath, caption);
       return res.status(201).json(message);
-    } catch {
-      return res.status(500).json({ message: "Error sending image message" });
+    } catch (err: any) {
+      console.error("Error sending image message", err);
+      return res.status(500).json({
+        message: err?.message || "Error sending image message",
+      });
     }
   },
 );
