@@ -4,6 +4,9 @@
 !.env.example
 !.env.sample
 
+# Branch-specific local folder guard
+tutoreverywhere_backend/
+
 # Dependencies
 node_modules/
 
