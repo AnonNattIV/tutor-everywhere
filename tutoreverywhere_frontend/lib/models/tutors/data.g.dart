@@ -18,6 +18,7 @@ TutorData _$TutorDataFromJson(Map<String, dynamic> json) => TutorData(
   preferredPlace: json['preferred_place'] as String?,
   province: json['province'] as String?,
   location: json['location'] as String?,
+  verificationPicture: json['verification_picture'] as String?,
 );
 
 Map<String, dynamic> _$TutorDataToJson(TutorData instance) => <String, dynamic>{
@@ -32,4 +33,5 @@ Map<String, dynamic> _$TutorDataToJson(TutorData instance) => <String, dynamic>{
   'preferred_place': instance.preferredPlace,
   'province': instance.province,
   'location': instance.location,
+  'verification_picture': instance.verificationPicture,
 };

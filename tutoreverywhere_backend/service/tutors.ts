@@ -61,7 +61,8 @@ tutorService.get("/profile/:userId", async (req, res) => {
   const userId = params.userId;
   try {
     const tutorData = await viewTutorData(userId);
-    res.status(200).json(tutorData[0]);
+    const specific_tutorData = tutorData[0];
+    res.status(200).json(specific_tutorData);
   } catch (err) {
     res.status(404).json({message: "Account not found"});
   }

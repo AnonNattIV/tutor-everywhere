@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tutoreverywhere_frontend/constants/app_constants.dart';
 import 'package:tutoreverywhere_frontend/models/admins/requiredverifications.dart';
+import 'package:tutoreverywhere_frontend/pages/admin/id_verify_user.dart';
 import 'package:tutoreverywhere_frontend/providers/auth_provider.dart';
 import 'package:tutoreverywhere_frontend/service/api.dart';
 
@@ -26,11 +27,6 @@ class _IdVerifyPageState extends State<IdVerifyPage> {
   void initState() {
     super.initState();
     _setupDio();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     _fetchRequiredVerifications();
   }
 
@@ -115,7 +111,7 @@ class _IdVerifyPageState extends State<IdVerifyPage> {
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final user = _verifications[index];
-          return _VerificationCard(user: user);
+          return _VerificationCard(user: user, onRefresh: _fetchRequiredVerifications,);
         },
       ),
     );
@@ -124,8 +120,9 @@ class _IdVerifyPageState extends State<IdVerifyPage> {
 
 class _VerificationCard extends StatelessWidget {
   final RequiredVerificationsResponse user;
+  final VoidCallback onRefresh;
 
-  const _VerificationCard({required this.user});
+  const _VerificationCard({required this.user, required this.onRefresh});
 
   Color _genderColor(String gender) {
     switch (gender.toLowerCase()) {
@@ -161,7 +158,7 @@ class _VerificationCard extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: genderColor.withOpacity(0.15),
+              backgroundColor: genderColor.withValues(alpha: 0.15),
               child: Icon(_genderIcon(user.gender), color: genderColor),
             ),
             const SizedBox(width: 14),
@@ -175,9 +172,9 @@ class _VerificationCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: genderColor.withOpacity(0.12),
+                          color: genderColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: genderColor.withOpacity(0.4)),
+                          border: Border.all(color: genderColor.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           user.gender.toUpperCase(),
@@ -215,7 +212,13 @@ class _VerificationCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            IconButton(
+              icon: Icon(Icons.chevron_right, color: Colors.grey),
+              onPressed: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (context) => IdVerifyUserPage(userId: user.userId)));
+                onRefresh();
+              }
+            )
           ],
         ),
       ),

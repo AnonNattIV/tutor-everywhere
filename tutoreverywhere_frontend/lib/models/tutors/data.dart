@@ -15,6 +15,7 @@ class TutorData {
   final String? preferredPlace;
   final String? province;
   final String? location;
+  final String? verificationPicture;
 
   TutorData({
     required this.userUuid,
@@ -27,7 +28,8 @@ class TutorData {
     required this.verified,
     this.preferredPlace,
     this.province,
-    this.location
+    this.location,
+    this.verificationPicture
   });
 
   factory TutorData.fromJson(Map<String, dynamic> json) => _$TutorDataFromJson(json);

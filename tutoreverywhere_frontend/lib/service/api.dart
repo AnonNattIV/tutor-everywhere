@@ -108,4 +108,10 @@ abstract class RestClient {
   // Admin
   @GET("/admin/required-verifications")
   Future<List<RequiredVerificationsResponse>> getRequiredVerifications(@Header("Authorization") String jwtToken);
+
+  @POST("/admin/acceptverification")
+  Future<void> acceptVerification(@Header("Authorization") String jwtToken, @Field("tutor_id") tutorId);
+
+  @POST("/admin/denyverification")
+  Future<void> denyVerification(@Header("Authorization") String jwtToken, @Field("tutor_id") tutorId);
 }
