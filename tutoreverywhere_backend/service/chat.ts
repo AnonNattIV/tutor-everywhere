@@ -1,11 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { verifyToken } from "../middleware/verify.ts";
 import { findUserByUserId } from "../controllers/users.ts";
+import { uploadImageToObjectStorage } from "../helpers/objectStorage.ts";
 import {
   ensureChatTables,
   getConversations,
@@ -26,23 +24,8 @@ chatService.use(bodyParser.json());
 //   console.error("Chat table initialization failed", err);
 // });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const chatUploadDir = path.join(__dirname, "../assets/chat");
-
-if (!fs.existsSync(chatUploadDir)) {
-  fs.mkdirSync(chatUploadDir, { recursive: true });
-}
-
 const chatImageUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, chatUploadDir),
-    filename: (_req, file, cb) => {
-      const extension = path.extname(file.originalname).toLowerCase() || ".jpg";
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`;
-      cb(null, fileName);
-    },
-  }),
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       return cb(null, true);
@@ -207,7 +190,7 @@ chatService.post(
         return res.status(peerCheck.status).json(peerCheck.body);
       }
 
-      const imagePath = `assets/chat/${req.file.filename}`;
+      const imagePath = await uploadImageToObjectStorage(req.file, "chat");
       const caption = req.body?.text?.toString?.();
       const message = await sendImageMessage(userId, otherUserId, imagePath, caption);
       return res.status(201).json(message);
