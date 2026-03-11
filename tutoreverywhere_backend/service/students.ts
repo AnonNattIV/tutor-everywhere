@@ -75,15 +75,29 @@ studentService.post("/bio", verifyToken, async (req, res) => {
 
 studentService.get("/appointments/:userId", async (req, res) => {
   const query = req.query;
-  const year = query.year?.toString();
-  const month = query.month?.toString();
-  const day = query.day?.toString();
-  const formattedDateQuery = year + '-' + month + '-' + day;
+  const year = Number.parseInt(query.year?.toString() ?? "", 10);
+  const month = Number.parseInt(query.month?.toString() ?? "", 10);
+  const dayRaw = query.day?.toString();
+  const day = dayRaw == null ? undefined : Number.parseInt(dayRaw, 10);
   const params = req.params;
   const userId = params.userId;
-  console.log(formattedDateQuery);
+
+  if (Number.isNaN(year) || Number.isNaN(month)) {
+    return res.status(400).json({ message: "year and month are required" });
+  }
+  if (month < 1 || month > 12) {
+    return res.status(400).json({ message: "month must be 1-12" });
+  }
+  if (dayRaw != null && (Number.isNaN(day) || day! < 1 || day! > 31)) {
+    return res.status(400).json({ message: "day must be 1-31" });
+  }
+
   try {
-    const appointments = await getAppointmentByStudentId(userId, formattedDateQuery)
+    const appointments = await getAppointmentByStudentId(userId, {
+      year,
+      month,
+      day,
+    })
     res.status(200).json(appointments);
   } catch (err) {
     res.status(500).json({message: "Error find student appointment" });
