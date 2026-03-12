@@ -214,11 +214,12 @@ async function findTutor(subject?: string, province?: string, location?: string,
         t.location,
         ts.subject,
         ts.price,
-        round(avg(r.rating)::numeric, 2) as avg_rating,
+        coalesce(round(avg(r.rating)::numeric, 2), 0) as avg_rating,
         count(r.rating) as review_count
       from tutors t
       join tutor_subjects ts on t.user_uuid = ts.tutor_uuid
-      join reviews r on t.user_uuid = r.reviewee
+      -- Keep new tutors visible even before receiving any reviews.
+      left join reviews r on t.user_uuid = r.reviewee
       where true
         ${subject ? sql` and ts.subject = ${subject}` : sql``}
         ${province ? sql` and t.province = ${province}` : sql``}
