@@ -221,7 +221,7 @@ async function findTutor(subject?: string, province?: string, location?: string,
       -- Keep new tutors visible even before receiving any reviews.
       left join reviews r on t.user_uuid = r.reviewee
       where true
-        ${subject ? sql` and ts.subject = ${subject}` : sql``}
+        ${subject ? sql` and lower(ts.subject) = lower(${subject})` : sql``}
         ${province ? sql` and t.province = ${province}` : sql``}
         ${location ? sql` and t.location = ${location}` : sql``}
         ${maxPrice ? sql` and ts.price <= ${maxPrice}` : sql``}
