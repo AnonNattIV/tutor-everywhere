@@ -172,7 +172,7 @@ class _ChatPageState extends State<ChatPage> {
     );
 
     if (result == true) {
-      await _loadMessages(peerUserId, silent: true);
+      await _loadMessages(peerUserId, silent: true, forceScrollToBottom: true);
       await _loadConversations(silent: true);
     }
   }
@@ -361,7 +361,11 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _loadMessages(String peerUserId, {bool silent = false}) async {
+  Future<void> _loadMessages(
+    String peerUserId, {
+    bool silent = false,
+    bool forceScrollToBottom = false,
+  }) async {
     if (!silent && mounted) {
       setState(() => _isLoadingMessages = true);
     }
@@ -406,7 +410,9 @@ class _ChatPageState extends State<ChatPage> {
         _messages = parsed;
         _isLoadingMessages = false;
       });
-      _scrollMessagesToBottom();
+      if (forceScrollToBottom || !silent) {
+        _scrollMessagesToBottom();
+      }
     } catch (e) {
       if (!silent) {
         _showSnack('Error loading messages: $e');
@@ -472,7 +478,7 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       _messageController.clear();
-      await _loadMessages(peerUserId, silent: true);
+      await _loadMessages(peerUserId, silent: true, forceScrollToBottom: true);
       await _loadConversations(silent: true);
     } catch (e) {
       _showSnack('Error sending message: $e');
@@ -509,7 +515,7 @@ class _ChatPageState extends State<ChatPage> {
         return;
       }
 
-      await _loadMessages(peerUserId, silent: true);
+      await _loadMessages(peerUserId, silent: true, forceScrollToBottom: true);
       await _loadConversations(silent: true);
     } catch (e) {
       _showSnack('Error sharing location: $e');
@@ -564,7 +570,7 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       _messageController.clear();
-      await _loadMessages(peerUserId, silent: true);
+      await _loadMessages(peerUserId, silent: true, forceScrollToBottom: true);
       await _loadConversations(silent: true);
     } catch (e) {
       _showSnack('Error sending image: $e');
