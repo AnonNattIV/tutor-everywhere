@@ -107,13 +107,6 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  bool _isNearBottom({double threshold = 120}) {
-    if (!_messageScrollController.hasClients) return true;
-    final position = _messageScrollController.position;
-    final distanceToBottom = position.maxScrollExtent - position.pixels;
-    return distanceToBottom <= threshold;
-  }
-
   Options _authOptions() {
     // Backend expects raw JWT string in Authorization header.
     final token = context.read<AuthProvider>().token;
@@ -417,7 +410,7 @@ class _ChatPageState extends State<ChatPage> {
         _messages = parsed;
         _isLoadingMessages = false;
       });
-      if (forceScrollToBottom || !silent || _isNearBottom()) {
+      if (forceScrollToBottom || !silent) {
         _scrollMessagesToBottom();
       }
     } catch (e) {
