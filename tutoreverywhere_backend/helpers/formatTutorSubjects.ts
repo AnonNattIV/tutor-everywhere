@@ -3,12 +3,18 @@ function formatUserSubjects(data) {
   // 1. Always return an array, even if empty (never return null)
   if (!Array.isArray(data) || data.length === 0) return [];
 
-  // 2. Group data by unique user identifier (assuming 'id' exists in baseUser)
-  // This ensures that if findTutor returns multiple different tutors, 
-  // they are not collapsed into a single object.
+  // 2. Group data by tutor user id.
+  // Backend query returns `user_uuid` (not `id`), so we must key by that field.
   const groupedByUser = data.reduce((acc, item) => {
     const { subject, price, ...baseUser } = item;
-    const userId = baseUser.id; // Assumes 'id' is the unique key
+    const userId = (
+      baseUser.user_uuid ??
+      baseUser.userId ??
+      baseUser.id
+    )?.toString?.();
+    if (!userId) {
+      return acc;
+    }
 
     if (!acc[userId]) {
       acc[userId] = {
